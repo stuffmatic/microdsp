@@ -1,7 +1,5 @@
-use rustfft::num_complex::Complex;
-use rustfft::num_traits::Zero;
-use rustfft::FFTplanner;
 use std::vec;
+use microfft;
 
 // https://en.wikipedia.org/wiki/Infinite_impulse_response
 struct IIRFilter {
@@ -148,7 +146,7 @@ pub struct MPMPitch {
     pub selected_key_max_index: usize,
     // The final pitch period (in samples)
     pub pitch_period: f32,
-    scratch_buffer: Vec<f32> // TODO: should be a slice
+    scratch_buffer: Vec<f32>, // TODO: should be a slice
 }
 
 impl MPMPitch {
@@ -161,7 +159,7 @@ impl MPMPitch {
         autocorr_sum(&self.window[..], r_prime);
 
         // Compute m' and store it in the nsdf buffer
-        m_prime_sum(window, nsdf);
+        m_prime_incremental(window, r_prime[0], nsdf);
 
         // Compute the NSDF as 2 * r' / m'
         for i in 0..nsdf.len() {
@@ -236,62 +234,42 @@ impl MPMPitch {
     }
 }
 
+/// Computes m' defined in eq (6), using the incremental subtraction
+/// algorithm described in section 6 - Efficient calculation of SDF.
+fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32]) {
+    let lag_count = result.len();
+    let window_size = window.len();
+    if lag_count > window_size {
+        panic!("Lag count must not be greater than the window size");
+    }
+
+    result[0] = 2.0 * autocorr_at_lag_0;
+    for i in 1..lag_count {
+        let v1 = window[window_size - i];
+        let v2 = window[i - 1];
+        result[i] = result[i - 1] - v1 * v1 - v2 * v2;
+    }
+}
+
 pub struct MPMPitchDetector {
     sample_rate: usize,
     window_size: usize,
     window_distance: usize,
     window_write_index: usize,
-    window: Vec<f32>, // TODO: should be a slice
+    window: Vec<f32>,          // TODO: should be a slice
     filtered_window: Vec<f32>, // TODO: should be a slice
     has_full_window: bool,
     equal_loudness_filter: EqualLoudnessFilter,
-    pub result: MPMPitch
-}
-
-fn autocorr_sum(window: &[f32], result: &mut [f32]) {
-    let window_size = window.len();
-    if window_size < result.len() {
-        panic!("Result vector must not be longer than the window.");
-    }
-
-    let lag_count = result.len();
-
-    for tau in 0..lag_count {
-        let mut sum: f32 = 0.0;
-        let j_min: usize = 0;
-        let j_max = window_size - 1 - tau + 1;
-        for j in j_min..j_max {
-            let xj = window[j];
-            let xj_plus_tau = window[j + tau];
-            sum += xj * xj_plus_tau;
-        }
-        result[tau] = sum;
-    }
-}
-
-fn m_prime_sum(window: &[f32], result: &mut [f32]) {
-    let window_size = window.len();
-    if window_size < result.len() {
-        panic!("Result vector must not be longer than the window.");
-    }
-
-    let lag_count = result.len();
-
-    for tau in 0..lag_count {
-        let mut sum: f32 = 0.0;
-        let j_min: usize = 0;
-        let j_max = window_size - 1 - tau + 1;
-        for j in j_min..j_max {
-            let xj = window[j];
-            let xj_plus_tau = window[j + tau];
-            sum += xj * xj + xj_plus_tau * xj_plus_tau;
-        }
-        result[tau] = sum;
-    }
+    pub result: MPMPitch,
 }
 
 impl MPMPitchDetector {
-    pub fn new(sample_rate: usize, window_size: usize, window_distance: usize, use_equal_loudness_filter: bool) -> MPMPitchDetector {
+    pub fn new(
+        sample_rate: usize,
+        window_size: usize,
+        window_distance: usize,
+        use_equal_loudness_filter: bool,
+    ) -> MPMPitchDetector {
         let lag_count = window_size;
         MPMPitchDetector {
             sample_rate,
@@ -316,11 +294,7 @@ impl MPMPitchDetector {
         }
     }
 
-    pub fn process<F: FnMut(usize, &MPMPitch)>(
-        &mut self,
-        samples: &[f32],
-        mut callback: F,
-    ) {
+    pub fn process<F: FnMut(usize, &MPMPitch)>(&mut self, samples: &[f32], mut callback: F) {
         for (sample_index, sample) in samples.iter().enumerate() {
             // Accumulate this sample
             self.window[self.window_write_index] = *sample;
@@ -334,7 +308,8 @@ impl MPMPitchDetector {
             if self.has_full_window && (self.window_write_index + 1) % self.window_distance == 0 {
                 // Time to process the current window
                 // TODO: handle filtering differently, since the windows overlap.
-                self.equal_loudness_filter.process(&self.window[..], &mut self.filtered_window[..]);
+                self.equal_loudness_filter
+                    .process(&self.window[..], &mut self.filtered_window[..]);
 
                 // Extract the buffer to analyze.
                 // The start sample of the buffer to analyze may not be at the start
@@ -357,31 +332,78 @@ impl MPMPitchDetector {
     }
 }
 
+// Computes the autocorrelation as a naive inefficient summation.
+// Only used for testing purposes.
+// TODO: move to mod tests
+fn autocorr_sum(window: &[f32], result: &mut [f32]) {
+    let window_size = window.len();
+    if window_size < result.len() {
+        panic!("Result vector must not be longer than the window.");
+    }
+
+    let lag_count = result.len();
+
+    for tau in 0..lag_count {
+        let mut sum: f32 = 0.0;
+        let j_min: usize = 0;
+        let j_max = window_size - 1 - tau + 1;
+        for j in j_min..j_max {
+            let xj = window[j];
+            let xj_plus_tau = window[j + tau];
+            sum += xj * xj_plus_tau;
+        }
+        result[tau] = sum;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_incremental_m_prime() {
-        let signal: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0];
-        let lag_count: usize = 4;
-
-        // Compute expected m' values
-        let mut m_prime_reference: Vec<f32> = vec![0.0; lag_count];
-        m_prime_sum(&signal[..], &mut m_prime_reference[..]);
-        let mut autocorr: Vec<f32> = vec![0.0; lag_count];
-        autocorr_sum(&signal[..], &mut autocorr[..]);
-
-        // Compute m' incrementally
-        let mut m_prime: Vec<f32> = vec![0.0; lag_count];
-        m_prime[0] = 2.0 * autocorr[0];
-        for i in 1..lag_count {
-            let v1 = signal[signal.len() - i];
-            let v2 = signal[i - 1];
-            m_prime[i] = m_prime[i - 1] - v1 * v1 - v2 * v2;
+    // Computes m' as a naive inefficient summation.
+    // Only used for testing purposes.
+    fn m_prime_sum(window: &[f32], result: &mut [f32]) {
+        let window_size = window.len();
+        if window_size < result.len() {
+            panic!("Result vector must not be longer than the window.");
         }
 
-        let a = 0;
+        let lag_count = result.len();
+
+        for tau in 0..lag_count {
+            let mut sum: f32 = 0.0;
+            let j_min: usize = 0;
+            let j_max = window_size - 1 - tau + 1;
+            for j in j_min..j_max {
+                let xj = window[j];
+                let xj_plus_tau = window[j + tau];
+                sum += xj * xj + xj_plus_tau * xj_plus_tau;
+            }
+            result[tau] = sum;
+        }
+    }
+
+    #[test]
+    fn test_incremental_m_prime() {
+        let signal: Vec<f32> = vec![
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+        ];
+        let lag_count: usize = 4;
+
+        // Compute m' by naive summation
+        let mut m_prime_naive: Vec<f32> = vec![0.0; lag_count];
+        m_prime_sum(&signal[..], &mut m_prime_naive[..]);
+
+        // Compute m' by incremental subtraction
+        let mut autocorr: Vec<f32> = vec![0.0; lag_count];
+        autocorr_sum(&signal[..], &mut autocorr[..]);
+        let mut m_prime_incr: Vec<f32> = vec![0.0; lag_count];
+        m_prime_incremental(&signal[..], autocorr[0], &mut m_prime_incr[..]);
+
+        // Make sure the results are the same
+        for (naive, incr) in m_prime_naive.iter().zip(m_prime_incr.iter()) {
+            assert!((*naive - *incr).abs() <= f32::EPSILON);
+        }
     }
 
     #[test]
@@ -397,10 +419,7 @@ mod tests {
         }
         let mut detector =
             MPMPitchDetector::new(sample_rate as usize, window_size, window_distance, true);
-        detector.process(
-            &window[..],
-            |sample_index, result: &MPMPitch| {},
-        );
+        detector.process(&window[..], |sample_index, result: &MPMPitch| {});
         for (index, value) in detector.result.nsdf.iter().enumerate() {
             println!("[{},{}],", index, value);
         }
@@ -432,41 +451,46 @@ mod tests {
         // conv(a, fliplr(a)) = [8    23    44    70   100   133   168   204   168   133   100    70    44   23     8]
         // ifft(abs(fft([a 0 0 0 0])).^2) = [204.000   168.000   133.000   100.000    70.000    52.000 ....
 
-        // TODO: Optimize FFT for use with only real values
         let window: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
         let lag_count = 4;
+        let mut autocorr_reference: Vec<f32> = vec![0.0; lag_count];
+        autocorr_sum(&window[..], &mut autocorr_reference[..]);
 
-        let mut reference: Vec<f32> = vec![0.0; lag_count];
-        autocorr_sum(&window[..], &mut reference[..]);
-
-        let mut fft_input: Vec<Complex<f32>> = window.iter().map(|item| {
-            Complex::new(*item, 0.0)
-        }).collect();
-        let pad = lag_count - 1;
-        for i in 0..pad {
-            fft_input.push(Complex::new(0.0, 0.0));
+        fn round_to_power_of_2(value: usize) -> usize {
+            let mut result: usize = 1;
+            while result < value {
+                result = result << 1;
+            }
+            result
         }
 
-        let fft_size = fft_input.len();
+        let fft_size = round_to_power_of_2(window.len() + lag_count - 1);
 
-        let mut output: Vec<Complex<f32>> = vec![Complex::zero(); fft_size];
-        let mut planner = FFTplanner::new(false);
-        let fft = planner.plan_fft(fft_size);
-        fft.process(&mut fft_input, &mut output);
-        for i in 0..output.len() {
-            let re = output[i].re;
-            let im = output[i].im;
-            output[i] = Complex::new(re * re + im * im, 0.0);
+        // Build complex input array from signal
+        let mut fft_buffer: Vec<microfft::Complex32> = vec![microfft::Complex32::new(0.0, 0.0); fft_size];
+        for (i, sample) in window.iter().enumerate() {
+            fft_buffer[i].re = *sample;
+        }
+        // Apply FFT in place
+        microfft::complex::cfft_16(&mut fft_buffer[..]);
+        // Point-wise multiplication by complex conjugate
+        for sample in fft_buffer.iter_mut() {
+            sample.re = sample.re * sample.re + sample.im * sample.im;
+            sample.im = 0.0;
+        }
+        // Apply an inverse FFT in place by reordering the elements and then applying a forward FFT.
+        fft_buffer[1..].reverse();
+
+        microfft::complex::cfft_16(&mut fft_buffer[..]);
+        for value in fft_buffer.iter_mut() {
+            value.re /= fft_size as f32;
+            value.im /= fft_size as f32;
         }
 
-        let mut planner_inv = FFTplanner::new(true);
-        let fft_inv = planner_inv.plan_fft(output.len());
-        fft_inv.process(&mut output, &mut fft_input);
-        let scale = 1.0 / (fft_input.len() as f32);
-        for i in 0..fft_input.len() {
-            fft_input[i] *= scale;
+        let epsilon = 1e-4;
+        for (reference, fft_value) in autocorr_reference.iter().zip(fft_buffer.iter()) {
+            assert!((*reference - fft_value.re).abs() <= epsilon);
         }
-        // TODO: actually assert stuff
     }
 
     #[test]
@@ -485,13 +509,10 @@ mod tests {
 
         // Verify that the buffer to process in callback i starts with the value i
         let mut result_count = 0;
-        detector.process(
-            &buffer[..],
-            |sample_index: usize, result: &MPMPitch| {
-                let first_window_sample = result.window[0];
-                assert_eq!(first_window_sample as usize, result_count % window_size);
-                result_count += 1;
-            },
-        );
+        detector.process(&buffer[..], |sample_index: usize, result: &MPMPitch| {
+            let first_window_sample = result.window[0];
+            assert_eq!(first_window_sample as usize, result_count % window_size);
+            result_count += 1;
+        });
     }
 }
