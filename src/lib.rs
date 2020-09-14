@@ -1,5 +1,5 @@
-use std::vec;
 use microfft;
+use std::vec;
 
 // https://en.wikipedia.org/wiki/Infinite_impulse_response
 struct IIRFilter {
@@ -136,6 +136,7 @@ impl KeyMaximum {
 pub struct MPMPitch {
     pub window: Vec<f32>, // TODO: should be a slice
     pub frequency: f32,
+    pub note_number: f32,
     pub clarity: f32,
     pub nsdf: Vec<f32>,
     // The number of key maxima
@@ -146,7 +147,7 @@ pub struct MPMPitch {
     pub selected_key_max_index: usize,
     // The final pitch period (in samples)
     pub pitch_period: f32,
-    scratch_buffer: Vec<f32>, // TODO: should be a slice
+    r_prime: Vec<microfft::Complex32>, // TODO: should be a slice
 }
 
 impl MPMPitch {
@@ -154,16 +155,17 @@ impl MPMPitch {
     fn compute(&mut self, sample_rate: f32) {
         let window = &self.window[..];
         let nsdf = &mut self.nsdf[..];
-        let r_prime = &mut self.scratch_buffer[..];
+        let mut r_prime = &mut self.r_prime[..];
 
-        autocorr_sum(&self.window[..], r_prime);
+        autocorr_fft(&self.window[..], &mut r_prime, nsdf.len());
 
         // Compute m' and store it in the nsdf buffer
-        m_prime_incremental(window, r_prime[0], nsdf);
+        let autocorr_at_lag_0 = r_prime[0].re;
+        m_prime_incremental(window, autocorr_at_lag_0, nsdf);
 
         // Compute the NSDF as 2 * r' / m'
         for i in 0..nsdf.len() {
-            nsdf[i] = 2.0 * r_prime[i] / nsdf[i];
+            nsdf[i] = 2.0 * r_prime[i].re / nsdf[i];
         }
 
         // Perform peak picking. First, gather key maxima
@@ -251,6 +253,95 @@ fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32
     }
 }
 
+/// Computes the length of the FFT needed to compute the autocorrelation
+/// for a given window size and lag count to avoid circular convolution effects.
+fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
+    let min_length = window_size + lag_count - 1;
+    let mut result: usize = 16; // Start at microfft's minimum size
+    while result < min_length {
+        result = result << 1;
+    }
+    result
+}
+
+fn fft_in_place(buffer: &mut [microfft::Complex32]) {
+    let fft_size = buffer.len();
+    match fft_size {
+        16 => {
+            let _ = microfft::complex::cfft_16(buffer);
+        },
+        32 => {
+            let _ = microfft::complex::cfft_32(buffer);
+        },
+        64 => {
+            let _ = microfft::complex::cfft_64(buffer);
+        },
+        128 => {
+            let _ = microfft::complex::cfft_128(buffer);
+        },
+        256 => {
+            let _ = microfft::complex::cfft_256(buffer);
+        },
+        512 => {
+            let _ = microfft::complex::cfft_512(buffer);
+        },
+        1024 => {
+            let _ = microfft::complex::cfft_1024(buffer);
+        },
+        2048 => {
+            let _ = microfft::complex::cfft_2048(buffer);
+        },
+        4096 => {
+            let _ = microfft::complex::cfft_4096(buffer);
+        }
+        _ => panic!("Unsupported fft size {}", fft_size)
+    }
+}
+
+fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: usize) {
+    // Sanity checks
+    let fft_size = autocorr_fft_size(window.len(), lag_count);
+    if result.len() != fft_size {
+        panic!(
+            "Got autocorr fft buffer of length {}, expected {}.",
+            result.len(),
+            fft_size
+        )
+    }
+
+    if window.len() < lag_count {
+        panic!("Window size must not be less than the lag count")
+    }
+
+    // Build FFT input signal
+    for (i, sample) in window.iter().enumerate() {
+        result[i].re = *sample;
+        result[i].im = 0.0;
+    }
+
+    // Perform the FFT in place
+    fft_in_place(&mut result[..]);
+
+    // Compute the power spectral density by point-wise multiplication by the complex conjugate.
+    for sample in result.iter_mut() {
+        sample.re = sample.re * sample.re + sample.im * sample.im;
+        sample.im = 0.0;
+    }
+
+    // Perform an inverse FFT to get the autocorrelation. This is done in two steps:
+    // 1. Reorder the power spectral density
+    result[1..].reverse();
+    // 2. Compute the FFT in place, which thanks to the reordering above becomes the inverse FFT (up to a scale)
+    fft_in_place(&mut result[..]);
+
+    // Apply scaling factor
+    let scale = 1.0 / (fft_size as f32);
+    for i in 0..lag_count {
+        result[i].re = scale * result[i].re;
+        result[i].im = scale * result[i].re;
+    }
+}
+
 pub struct MPMPitchDetector {
     sample_rate: usize,
     window_size: usize,
@@ -271,6 +362,7 @@ impl MPMPitchDetector {
         use_equal_loudness_filter: bool,
     ) -> MPMPitchDetector {
         let lag_count = window_size;
+        let fft_size = autocorr_fft_size(window_size, lag_count);
         MPMPitchDetector {
             sample_rate,
             window_size,
@@ -283,9 +375,10 @@ impl MPMPitchDetector {
             result: MPMPitch {
                 frequency: 0.0,
                 clarity: 0.0,
+                note_number: 0.0,
                 window: vec![0.0; window_size],
                 nsdf: vec![0.0; lag_count],
-                scratch_buffer: vec![0.0; window_size],
+                r_prime: vec![microfft::Complex32::new(0.0, 0.0); fft_size],
                 key_max_count: 0,
                 key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
                 selected_key_max_index: 0,
@@ -332,33 +425,32 @@ impl MPMPitchDetector {
     }
 }
 
-// Computes the autocorrelation as a naive inefficient summation.
-// Only used for testing purposes.
-// TODO: move to mod tests
-fn autocorr_sum(window: &[f32], result: &mut [f32]) {
-    let window_size = window.len();
-    if window_size < result.len() {
-        panic!("Result vector must not be longer than the window.");
-    }
-
-    let lag_count = result.len();
-
-    for tau in 0..lag_count {
-        let mut sum: f32 = 0.0;
-        let j_min: usize = 0;
-        let j_max = window_size - 1 - tau + 1;
-        for j in j_min..j_max {
-            let xj = window[j];
-            let xj_plus_tau = window[j + tau];
-            sum += xj * xj_plus_tau;
-        }
-        result[tau] = sum;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Computes the autocorrelation as a naive inefficient summation.
+    // Only used for testing purposes.
+    fn autocorr_sum(window: &[f32], result: &mut [f32]) {
+        let window_size = window.len();
+        if window_size < result.len() {
+            panic!("Result vector must not be longer than the window.");
+        }
+
+        let lag_count = result.len();
+
+        for tau in 0..lag_count {
+            let mut sum: f32 = 0.0;
+            let j_min: usize = 0;
+            let j_max = window_size - 1 - tau + 1;
+            for j in j_min..j_max {
+                let xj = window[j];
+                let xj_plus_tau = window[j + tau];
+                sum += xj * xj_plus_tau;
+            }
+            result[tau] = sum;
+        }
+    }
 
     // Computes m' as a naive inefficient summation.
     // Only used for testing purposes.
@@ -420,10 +512,8 @@ mod tests {
         let mut detector =
             MPMPitchDetector::new(sample_rate as usize, window_size, window_distance, true);
         detector.process(&window[..], |sample_index, result: &MPMPitch| {});
-        for (index, value) in detector.result.nsdf.iter().enumerate() {
-            println!("[{},{}],", index, value);
-        }
-        let a = 0;
+
+        assert!((f - detector.result.frequency).abs() <= 0.001);
     }
 
     #[test]
@@ -456,36 +546,10 @@ mod tests {
         let mut autocorr_reference: Vec<f32> = vec![0.0; lag_count];
         autocorr_sum(&window[..], &mut autocorr_reference[..]);
 
-        fn round_to_power_of_2(value: usize) -> usize {
-            let mut result: usize = 1;
-            while result < value {
-                result = result << 1;
-            }
-            result
-        }
-
-        let fft_size = round_to_power_of_2(window.len() + lag_count - 1);
-
-        // Build complex input array from signal
-        let mut fft_buffer: Vec<microfft::Complex32> = vec![microfft::Complex32::new(0.0, 0.0); fft_size];
-        for (i, sample) in window.iter().enumerate() {
-            fft_buffer[i].re = *sample;
-        }
-        // Apply FFT in place
-        microfft::complex::cfft_16(&mut fft_buffer[..]);
-        // Point-wise multiplication by complex conjugate
-        for sample in fft_buffer.iter_mut() {
-            sample.re = sample.re * sample.re + sample.im * sample.im;
-            sample.im = 0.0;
-        }
-        // Apply an inverse FFT in place by reordering the elements and then applying a forward FFT.
-        fft_buffer[1..].reverse();
-
-        microfft::complex::cfft_16(&mut fft_buffer[..]);
-        for value in fft_buffer.iter_mut() {
-            value.re /= fft_size as f32;
-            value.im /= fft_size as f32;
-        }
+        let fft_size = autocorr_fft_size(window.len(), lag_count);
+        let mut fft_buffer: Vec<microfft::Complex32> =
+            vec![microfft::Complex32::new(0.0, 0.0); fft_size];
+        autocorr_fft(&window[..], &mut fft_buffer[..], lag_count);
 
         let epsilon = 1e-4;
         for (reference, fft_value) in autocorr_reference.iter().zip(fft_buffer.iter()) {
