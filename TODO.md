@@ -1,1 +1,3 @@
-https://github.com/sevagh/pitch-detection
+* https://github.com/sevagh/pitch-detection
+* real-only FFT
+* equal loudness filter

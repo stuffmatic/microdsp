@@ -4,7 +4,7 @@
 pub struct KeyMaximum {
     /// The index into the NSDF array corresponding to this maximum
     pub lag_index: usize,
-    /// The value of the NSDF array at lag index for this maximum
+    /// The NSDF value at `lag_index` for this maximum
     pub value_at_lag_index: f32,
     /// The NSDF value for this maximum, approximated using parabolic interpolation.
     pub value: f32,

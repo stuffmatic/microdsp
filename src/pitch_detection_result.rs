@@ -1,13 +1,17 @@
 use crate::key_maximum::KeyMaximum;
 
+fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
+    if lag_count > window_size {
+        panic!("Lag count must not be greater than the window size");
+    }
+}
+
 /// Computes m' defined in eq (6), using the incremental subtraction
 /// algorithm described in section 6 - Efficient calculation of SDF.
 fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32]) {
     let lag_count = result.len();
     let window_size = window.len();
-    if lag_count > window_size {
-        panic!("Lag count must not be greater than the window size");
-    }
+    validate_window_size_lag_count(window_size, lag_count);
 
     result[0] = 2.0 * autocorr_at_lag_0;
     for i in 1..lag_count {
@@ -19,7 +23,9 @@ fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32
 
 /// Computes the length of the FFT needed to compute the autocorrelation
 /// for a given window size and lag count to avoid circular convolution effects.
-pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
+fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
+    validate_window_size_lag_count(window_size, lag_count);
+
     let min_length = window_size + lag_count - 1;
     let mut result: usize = 16; // Start at microfft's minimum size
     while result < min_length {
@@ -74,9 +80,9 @@ fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: u
         )
     }
 
-    if window.len() < lag_count {
-        panic!("Window size must not be less than the lag count")
-    }
+    validate_window_size_lag_count(window.len(), lag_count);
+
+    // TODO: exploit the fact that the signals are real-only.
 
     // Build FFT input signal
     for (i, sample) in window.iter().enumerate() {
@@ -108,42 +114,72 @@ fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: u
 }
 
 /// The maximum number of key maxima to gather during the peak finding phase.
-pub const MAX_KEY_MAXIMA_COUNT: usize = 16;
+const MAX_KEY_MAXIMA_COUNT: usize = 16;
 /// A pitch detection result.
 pub struct PitchDetectionResult {
-    pub window: Vec<f32>, // TODO: should be a slice
+    /// The estimated pitch frequency in Hz.
     pub frequency: f32,
-    pub note_number: f32,
+    /// The value of the NSDF at the maximum corresponding to the pitch period.
+    /// Between 0 and 1 (inclusive). Values close to 1 indicate pure tones and values
+    /// close to 0 indicate lack of a discernable pitch.
     pub clarity: f32,
-    pub nsdf: Vec<f32>,
-    // The number of key maxima
-    pub key_max_count: usize,
-    // List of current key maxima. Allocated once.
-    pub key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
-    // The index of the selected key maximum
-    pub selected_key_max_index: usize,
-    // The final pitch period (in samples)
+    /// The [MIDI note number](https://newt.phys.unsw.edu.au/jw/notes.html) corresponding to the pitch frequency.
+    pub note_number: f32,
+    /// The estimated pitch period in samples.
     pub pitch_period: f32,
-    pub r_prime: Vec<microfft::Complex32>, // TODO: should be a slice
+    /// The analyzed window.
+    pub window: Vec<f32>, // TODO: should be a slice
+    /// The normalized square difference function
+    pub nsdf: Vec<f32>,
+    /// The number of key maxima found during the peak picking phase.
+    pub key_max_count: usize,
+    /// A fixed array of key maxima. The first `key_max_count` maxima are valid.
+    pub key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
+    /// The index into `key_maxima` of the selected key maximum
+    pub selected_key_max_index: usize,
+    r_prime: Vec<microfft::Complex32>, // TODO: should be a slice
 }
 
 impl PitchDetectionResult {
-    // Computes pitch based on the current contents of window
-    pub fn compute(&mut self, sample_rate: f32) {
-        let window = &self.window[..];
-        let nsdf = &mut self.nsdf[..];
-        let mut r_prime = &mut self.r_prime[..];
-
-        autocorr_fft(&self.window[..], &mut r_prime, nsdf.len());
-
-        // Compute m' and store it in the nsdf buffer
-        let autocorr_at_lag_0 = r_prime[0].re;
-        m_prime_incremental(window, autocorr_at_lag_0, nsdf);
-
-        // Compute the NSDF as 2 * r' / m'
-        for i in 0..nsdf.len() {
-            nsdf[i] = 2.0 * r_prime[i].re / nsdf[i];
+    pub fn new(window_size: usize, lag_count: usize) -> PitchDetectionResult {
+        PitchDetectionResult {
+            frequency: 0.0,
+            clarity: 0.0,
+            note_number: 0.0,
+            window: vec![0.0; window_size],
+            nsdf: vec![0.0; lag_count],
+            r_prime: vec![microfft::Complex32::new(0.0, 0.0); autocorr_fft_size(window_size, lag_count)],
+            key_max_count: 0,
+            key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
+            selected_key_max_index: 0,
+            pitch_period: 0.0,
         }
+    }
+
+    /// Performs pitch detection on the current contents of `window`.
+    pub fn compute(&mut self, sample_rate: f32) {
+        self.reset();
+        self.compute_nsdf();
+        self.perform_peak_picking();
+        self.compute_pitch(sample_rate);
+    }
+
+    /// Indicates if the detection result has a valid pitch estimate.
+    pub fn is_valid(&self) -> bool {
+        self.key_max_count > 0
+    }
+
+    fn reset(&mut self) {
+        self.frequency = 0.0;
+        self.clarity = 0.0;
+        self.note_number = 0.0;
+        self.key_max_count = 0;
+        self.selected_key_max_index = 0;
+        self.pitch_period = 0.0;
+    }
+
+    fn perform_peak_picking(&mut self) {
+        let nsdf = &mut self.nsdf[..];
 
         // Perform peak picking. First, gather key maxima
         self.key_max_count = 0;
@@ -190,25 +226,47 @@ impl PitchDetectionResult {
         }
 
         let k: f32 = 0.8;
-        self.pitch_period = 0.0;
-        self.clarity = 0.0;
-        self.frequency = 0.0;
-        self.selected_key_max_index = 0;
 
         let threshold = k * largest_key_maximum;
         for (key_max_index, key_max) in self.key_maxima.iter().enumerate() {
             if key_max.value >= threshold {
                 self.selected_key_max_index = key_max_index;
-                self.pitch_period = key_max.lag;
-                self.clarity = if key_max.value > 1.0 {
-                    1.0
-                } else {
-                    key_max.value
-                };
-                let pitch_period = self.pitch_period / sample_rate;
-                self.frequency = 1.0 / pitch_period;
                 break;
             }
+        }
+    }
+
+    /// Computes pitch parameters from the currently selected key maximum.
+    fn compute_pitch(&mut self, sample_rate: f32) {
+        if self.key_max_count > 0 {
+            let selected_max = self.key_maxima[self.selected_key_max_index];
+            self.pitch_period = selected_max.lag;
+            self.clarity = if selected_max.value > 1.0 {
+                1.0
+            } else {
+                selected_max.value
+            };
+            let pitch_period = self.pitch_period / sample_rate;
+            self.frequency = 1.0 / pitch_period;
+            self.note_number = (self.frequency / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10();
+        }
+    }
+
+    /// Computes the normalized square difference function from the current contents of `window`.
+    fn compute_nsdf(&mut self) {
+        let window = &self.window[..];
+        let nsdf = &mut self.nsdf[..];
+        let mut r_prime = &mut self.r_prime[..];
+
+        autocorr_fft(&self.window[..], &mut r_prime, nsdf.len());
+
+        // Compute m' and store it in the nsdf buffer
+        let autocorr_at_lag_0 = r_prime[0].re;
+        m_prime_incremental(window, autocorr_at_lag_0, nsdf);
+
+        // Compute the NSDF as 2 * r' / m'
+        for i in 0..nsdf.len() {
+            nsdf[i] = 2.0 * r_prime[i].re / nsdf[i];
         }
     }
 }
@@ -240,7 +298,7 @@ mod tests {
         }
     }
 
-    // Computes m' as a naive inefficient summation.
+    // Computes m', defined in eq (6), as a naive inefficient summation.
     // Only used for testing purposes.
     fn m_prime_sum(window: &[f32], result: &mut [f32]) {
         let window_size = window.len();
