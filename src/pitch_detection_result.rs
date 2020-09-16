@@ -271,7 +271,8 @@ impl PitchDetectionResult {
 
         // Compute the NSDF as 2 * r' / m'
         for i in 0..nsdf.len() {
-            nsdf[i] = 2.0 * r_prime[i].re / nsdf[i];
+            let denominator = nsdf[i];
+            nsdf[i] = if denominator.abs() <= f32::EPSILON { 0.0 } else { 2.0 * r_prime[i].re / denominator };
         }
     }
 }
@@ -324,6 +325,18 @@ mod tests {
             }
             result[tau] = sum;
         }
+    }
+
+    #[test]
+    fn test_silence() {
+        let sample_rate = 44100.0;
+        let window_size = 16;
+
+        let mut result = PitchDetectionResult::new(window_size, window_size / 2);
+        result.compute(sample_rate);
+        assert_eq!(result.nsdf[0], 0.);
+        assert_eq!(result.key_max_count, 0);
+
     }
 
     #[test]
