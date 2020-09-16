@@ -131,7 +131,8 @@ pub struct PitchDetectionResult {
     pub window: Vec<f32>, // TODO: should be a slice
     /// The normalized square difference function
     pub nsdf: Vec<f32>,
-    /// The number of key maxima found during the peak picking phase.
+    /// The number of key maxima found during the peak picking phase. May be 0, in which case
+    /// the result is considered invalid.
     pub key_max_count: usize,
     /// A fixed array of key maxima. The first `key_max_count` maxima are valid.
     pub key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
