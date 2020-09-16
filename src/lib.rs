@@ -10,26 +10,37 @@
 //! * No allocations, suitable for real time audio use.
 //!
 //! # Examples
-//!
-//! Streaming API, handing windowing and overlapping windows.
-//! Used for passing (sequences of) chunks of arbitrary size to the processor.
+//! ## Streaming API
+//! Used for passing (sequences of) chunks of arbitrary size to the processor. Handles windowing and overlapping windows.
 //!
 //! ```
-//! /*let sample_rate = 44100;
-//! let mut detector = PitchDetector::new(sample_rate, window_size, window_distance, true);
-//! // Keep processing until we reach the last sample of the chunk.
+//! use mpm_pitch::pitch_detector::PitchDetector;
+//! use mpm_pitch::pitch_detector::ProcessingResult;
 //!
-//! // This is the current offset into the chunk
-//! let mut sample_offset: usize = 0;
-//! // As long as there are samples left in the chunk, call process. This consumes
+//! // Create a pitch detector instance
+//! let sample_rate = 44100.0;
+//! let window_size = 512;
+//! let window_overlap = 128;
+//! let mut detector = PitchDetector::new(sample_rate, window_size, window_overlap, true);
+//!
+//! // Create an input buffer containing a pure tone at 440 Hz.
+//! let mut chunk: Vec<f32> = vec![0.0; 10000];
+//! for i in 0..chunk.len() {
+//!     let sine_value = (2.0 * std::f32::consts::PI * 440.0 * (i as f32) / sample_rate).sin();
+//!     chunk[i] = sine_value;
+//! }
+//!
+//! // Call process until all samples have been consumed. Each call consumes
 //! // at most W samples, where W is the window size.
+//! let mut sample_offset: usize = 0;
 //! while sample_offset < chunk.len() {
 //!     match detector.process(&chunk[..], sample_offset) {
 //!         ProcessingResult::ProcessedWindow { sample_index } => {
-//!             // Consumed enough samples to fill and process another window. Inspect the result
+//!             // Consumed enough samples to fill and process another window.
+//!             // Inspect the result if it's valid.
 //!             let result = &detector.result;
 //!             if result.is_valid() {
-//!                 println!("pitch {} Hz, clarity {}", result.pitch, result.clarity);
+//!                 println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //!             }
 //!
 //!             // Sample_index is the index of the next sample to process.
@@ -40,14 +51,28 @@
 //!             break;
 //!         }
 //!     }
-//! }*/
+//! }
 //! ```
-//! Single window API, used to process a window directly. Useful for profiling and testing.
+//! ## Single window API
+//! Used to process a window directly. Useful for profiling and testing.
 //! ```
-//! /*let sample_rate = 44100;
-//! let result = PitchDetectionResult::new(window_size, lag_count);
-//! result.window[i] = ...;
-//! result.compute(sample_rate);*/
+//! use mpm_pitch::pitch_detection_result::PitchDetectionResult;
+//!
+//! // Create an instance of PitchDetectionResult
+//! let sample_rate = 44100.0;
+//! let window_size = 512;
+//! let lag_count = 256;
+//! let mut result = PitchDetectionResult::new(window_size, lag_count);
+//!
+//! // Fill the window to process with a pure tone at 440 Hz.
+//! for i in 0..window_size {
+//!     let sine_value = (2.0 * std::f32::consts::PI * 440.0 * (i as f32) / sample_rate).sin();
+//!     result.window[i] = sine_value;
+//! }
+//!
+//! // Perform pitch detection
+//! result.compute(sample_rate);
+//! println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //! ```
 
 mod equal_loudness_filter;

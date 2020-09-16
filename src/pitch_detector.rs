@@ -8,11 +8,13 @@ use crate::pitch_detection_result::PitchDetectionResult;
 /// TODO: ALSO HANDLES PREPROCESSING.
 pub struct PitchDetector {
     /// The audio sample rate in Hz.
-    sample_rate: usize,
+    sample_rate: f32,
     /// The size of the windows to analyze.
     window_size: usize,
     /// The number of samples that consecutive windows
-    /// overlap. Must be less than `window_size`
+    /// have in common, i.e the last `window_overlap` samples of window
+    /// `i` are the same as the first `window_overlap` of window `i + 1`.
+    /// Must be less than `window_size`.
     window_overlap: usize,
     window_distance_counter: usize, // TODO: rename
     input_buffer_write_index: usize,
@@ -26,21 +28,23 @@ pub struct PitchDetector {
 /// The result of passing a chunk to the pitch detector.
 pub enum ProcessingResult {
     /// Enough samples were consumed to fill and process a new window.
-    /// `sample_index` is the index of the next sample to process in the input chunk,
-    /// i.e the sample offset to pass to the next call to `process`.
-    ProcessedWindow { sample_index: usize },
-    /// Reached the last sample of the chunk.
+    ProcessedWindow {
+        /// The index of the next sample to process in the input buffer,
+        /// i.e the sample offset to pass to the next call to `process`.
+        sample_index: usize
+    },
+    /// Consumed all samples of the input buffer.
     ReachedEndOfBuffer,
 }
 
 impl PitchDetector {
     pub fn new(
-        sample_rate: usize,
+        sample_rate: f32,
         window_size: usize,
         window_overlap: usize,
         use_equal_loudness_filter: bool,
     ) -> PitchDetector {
-        let lag_count = window_size;
+        let lag_count = window_size / 2;
 
         if window_size == 0 {
             panic!("Window size must be greater than 0")
@@ -120,7 +124,7 @@ mod tests {
             window[i] = sine_value;
         }
         let mut detector =
-            PitchDetector::new(sample_rate as usize, window_size, window_overlap, true);
+            PitchDetector::new(sample_rate, window_size, window_overlap, true);
 
         let mut sample_offset: usize = 0;
         while sample_offset < window.len() {
@@ -139,13 +143,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_overlap() {
-        PitchDetector::new(44100, 100, 101, true);
+        PitchDetector::new(44100.0, 100, 101, true);
     }
 
     #[test]
     #[should_panic]
     fn test_zero_window_size() {
-        PitchDetector::new(44100, 0, 0, true);
+        PitchDetector::new(44100.0, 0, 0, true);
     }
 
     #[test]
@@ -153,6 +157,23 @@ mod tests {
         run_windowing_test(10, 4);
         run_windowing_test(10, 0);
         run_windowing_test(10, 1);
+    }
+
+    #[test]
+    fn test_process_beyond_last_sample() {
+        let mut detector = PitchDetector::new(
+            44100.0,
+            1024,
+            3 * 256,
+            true
+        );
+        let buffer: Vec<f32> = vec![0.0; 10000];
+        match detector.process(&buffer[..], buffer.len()) {
+            ProcessingResult::ReachedEndOfBuffer => {
+                // Expected
+            },
+            _ => assert!(false)
+        }
     }
 
     fn run_windowing_test(window_size: usize, window_overlap: usize) {
@@ -165,7 +186,7 @@ mod tests {
             buffer[i] = value as f32;
         }
 
-        let mut detector = PitchDetector::new(44100, window_size, window_overlap, true);
+        let mut detector = PitchDetector::new(44100.0, window_size, window_overlap, true);
 
         // Verify that the buffer to process in callback i starts with the value i
         let mut result_count = 0;
