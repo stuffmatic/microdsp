@@ -89,6 +89,10 @@ fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: u
         result[i].re = *sample;
         result[i].im = 0.0;
     }
+    for i in window.len()..fft_size {
+        result[i].re = 0.0;
+        result[i].im = 0.0;
+    }
 
     // Perform the FFT in place
     fft_in_place(&mut result[..]);
