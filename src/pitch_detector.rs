@@ -68,6 +68,15 @@ impl PitchDetector {
         }
     }
 
+    pub fn process_window(&mut self, samples: &[f32]) -> &PitchDetectionResult {
+        if samples.len() != self.window_size {
+            panic!("The input buffer size must equal the window size")
+        }
+        self.result.window.copy_from_slice(&samples[..]);
+        self.result.compute(self.sample_rate);
+        &self.result
+    }
+
     pub fn process(&mut self, samples: &[f32], sample_offset: usize) -> ProcessingResult {
         let window_distance = self.window_size - self.window_overlap;
         for sample_index in sample_offset..samples.len() {
