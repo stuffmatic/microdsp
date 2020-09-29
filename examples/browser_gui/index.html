@@ -4,39 +4,127 @@
 <head>
   <meta charset="utf-8">
   <title>title</title>
+  <style>
+    #graph-canvas {
+      width: 800px;
+      height: 500px;
+    }
+  </style>
   <script>
-    let webSocket;
+    let webSocket = undefined;
+    let reconnectTimer = undefined;
+    let canvas = undefined;
+    let wsUrl = "ws://127.0.0.1:8080";
+    let pitchReadings = [];
+    let timeRange = 2.0;
+
+    function q(id) {
+      return document.getElementById(id);
+    }
+
+    function refreshCanvas(pitchReading) {
+      // Remove too old readings
+      for (var i = 0; i < pitchReadings.length; i++) {
+        if (pitchReading.t - pitchReadings[i].t > timeRange) {
+          pitchReadings = pitchReadings.slice(i)
+        }
+      }
+      // Add newest reading
+      pitchReadings.push(pitchReading);
+      var timestamps = pitchReadings.map((reading) => reading.t);
+      var tMax = pitchReading.t;
+
+      console.log("# readings " + pitchReadings.length);
+
+      // Draw plots
+      var ctx = canvas.getContext("2d");
+      var width = ctx.canvas.clientWidth;
+      var height = ctx.canvas.clientHeight;
+      ctx.beginPath();
+      ctx.fillStyle = "#f0f0f0";
+      ctx.rect(0, 0, width, height);
+      ctx.fill();
+
+      function drawPlot(ts, values, color, min, max) {
+        const yScale = height / (max - min);
+        const tScale = width / timeRange;
+        ctx.beginPath();
+        for (let i = 0; i < ts.length; i++) {
+          let t = ts[i];
+          let value = values[i];
+          let y = height - yScale * (value - min);
+          let x = width - tScale * (tMax - t);
+          ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.stroke()
+      }
+
+      var curves = [
+        { key: "c", color: "#ff0000", min: 0, max: 1 },
+        { key: "l", color: "#00ff00", min: 0, max: 1 }
+      ]
+
+      for (let i = 0; i < curves.length; i++) {
+        const values = pitchReadings.map((r) => r[curves[i].key])
+        drawPlot(timestamps, values, curves[i].color, curves[i].min, curves[i].max);
+      }
+    }
+
     function connectWebsocket() {
       if (webSocket === undefined) {
-        webSocket = new WebSocket("ws://127.0.0.1:8080");
+        webSocket = new WebSocket(wsUrl);
         webSocket.onopen = function (event) {
-          webSocket.send("Here's some text that the server is urgently awaiting!");
+          window.clearInterval(reconnectTimer);
+          q("connection-info").innerText = "Connected to " + wsUrl;
+          console.log("onopen " + JSON.stringify(event));
         };
         webSocket.onmessage = function (event) {
-          console.log(event.data);
+          var pitchReading = JSON.parse(event.data);
+          refreshCanvas(pitchReading);
+          // console.log(pitchReading);
         };
+        webSocket.onclose = function (event) {
+          destroyWebsocket();
+          console.log("onclose " + JSON.stringify(event));
+          var retryInterval = 2.0;
+          reconnectTimer = window.setInterval(function () {
+            connectWebsocket();
+          }, retryInterval * 1000);
+          q("connection-info").innerText = "Connection closed.";
+        };
+        webSocket.onerror = function(event) {
+          console.log("onerror " + JSON.stringify(event));
+        }
       }
     }
 
     function disconnectWebsocket() {
       if (webSocket !== undefined) {
         webSocket.close();
+      }
+    }
+
+    function destroyWebsocket() {
+      if (webSocket !== undefined) {
+        webSocket.onopen = undefined;
+        webSocket.onmessage = undefined;
         webSocket = undefined;
       }
     }
 
-    function sendMessage() {
-      if (webSocket !== undefined) {
-        webSocket.send("Hello from browser");
-      }
-    }
+    window.addEventListener('DOMContentLoaded', (event) => {
+      canvas = q("plot-canvas");
+      connectWebsocket();
+    });
   </script>
 </head>
 
 <body>
-  <button onclick="connectWebsocket()">Connect</button>
-  <button onclick="sendMessage()">Send message</button>
-  <button onclick="disconnectWebsocket()">Disconnect</button>
+  <p id="connection-info"></p>
+  <canvas id="plot-canvas">
+
+  </canvas>
 </body>
 
 </html>

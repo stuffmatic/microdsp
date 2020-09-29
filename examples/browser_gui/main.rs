@@ -190,7 +190,17 @@ fn main() {
                       window_peak,
                       window_peak_db
                     } => {
-                        let _ = tx_send.send(format!("{{\"t\": {}, \"f\":{}, \"c\": {}, \"n\": {}, \"l\": {}}}", timestamp, frequency, clarity, note_number, window_rms_db));
+                        let _ = tx_send.send(
+                            format!(
+                                "{{\"t\": {}, \"f\":{}, \"c\": {}, \"n\": {}, \"l\": {}, \"lp\": {}}}",
+                                timestamp,
+                                frequency,
+                                clarity,
+                                note_number,
+                                window_rms,
+                                window_peak
+                            )
+                        );
                         // println!("DetectedPitch: t={}s: {} Hz, clarity {}, RMS {} dB", timestamp, frequency, clarity, window_rms_db)
                     }
                 },
