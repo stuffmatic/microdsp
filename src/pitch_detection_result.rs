@@ -279,12 +279,18 @@ impl PitchDetectionResult {
     fn compute_pitch(&mut self, sample_rate: f32) {
         if self.key_max_count > 0 {
             let selected_max = self.key_maxima[self.selected_key_max_index];
+
             self.pitch_period = selected_max.lag;
             self.clarity = if selected_max.value > 1.0 {
                 1.0
             } else {
                 selected_max.value
             };
+
+            // TODO: If the selected max really corresponds to the fundamental pitch,
+            // there should be high NSDF values at integer multiples of the lag of the selected max.
+            // If that's not the case, then we're probably dealing with a spurious peak?
+
             let pitch_period = self.pitch_period / sample_rate;
             self.frequency = 1.0 / pitch_period;
             self.note_number = (self.frequency / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10();
@@ -314,6 +320,8 @@ impl PitchDetectionResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand_seeder;
+    use rand_pcg::Pcg64;
 
     /// Computes the autocorrelation as a naive inefficient summation.
     /// Only used for testing purposes.
@@ -364,14 +372,31 @@ mod tests {
     #[test]
     fn test_silence() {
         let sample_rate = 44100.0;
-        let window_size = 16;
+        let window_size = 1024;
 
         let mut result = PitchDetectionResult::new(window_size, window_size / 2);
         result.compute(sample_rate);
         assert_eq!(result.nsdf[0], 0.);
         assert_eq!(result.key_max_count, 0);
-
     }
+
+    /*#[test]
+    fn test_noise() {
+        // TODO: fix this
+        let rng: Pcg64 = rand_seeder::Seeder::from("stripy zebra").make_rng();
+
+        let sample_rate = 44100.0;
+        let window_size = 1024;
+        let mut result = PitchDetectionResult::new(window_size, window_size / 2);
+        for i in 0..result.window.len() {
+            // result.window[i] = rng.ne
+            // rng.next_u32();
+        }
+        result.compute(sample_rate);
+        let a = 0;
+
+        // TODO: ADD ASSERTS
+    }*/
 
     #[test]
     fn test_incremental_m_prime() {

@@ -22,6 +22,20 @@
       },
       "args": [],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug browser GUI example",
+      "cargo": {
+        "args": [
+          "build",
+          "--example",
+          "browser_gui"
+        ]
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
