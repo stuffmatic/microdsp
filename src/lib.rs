@@ -11,7 +11,8 @@
 //!
 //! # Examples
 //! ## Streaming API
-//! Used for passing (sequences of) chunks of arbitrary size to the processor. Handles windowing and overlapping windows.
+//! Used for passing (sequences of) chunks of arbitrary size to the processor. Handles collecting
+//! samples into (possibly overlapping) windows and processing each newly filled window.
 //!
 //! ```
 //! use mpm_pitch::pitch_detector::PitchDetector;
