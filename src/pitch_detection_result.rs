@@ -169,6 +169,40 @@ impl PitchDetectionResult {
         self.compute_pitch(sample_rate);
     }
 
+    /// The maximum absolute value of the input window.
+    pub fn window_peak(&self) -> f32 {
+        let mut max: f32 = 0.0;
+        for sample in self.window.iter() {
+            let value = sample.abs();
+            if value > max {
+                max = value
+            }
+        }
+        max
+    }
+
+    /// The maximum absolute value of the input window, in dB relative to 1,
+    /// i.e 0 dB corresponds to a level of 1.
+    pub fn window_peak_db(&self) -> f32 {
+        20. * self.window_peak().log10()
+    }
+
+    /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
+    /// of the input window.
+    pub fn window_rms(&self) -> f32 {
+        let mut rms: f32 = 0.;
+        for sample in self.window.iter() {
+            rms += sample * sample
+        }
+        (rms / (self.window.len() as f32)).sqrt()
+    }
+
+    /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
+    /// of the input window, in dB relative to 1, i.e 0 dB corresponds to a level of 1.
+    pub fn window_rms_db(&self) -> f32 {
+        20. * self.window_rms().log10()
+    }
+
     /// Indicates if the detection result has a valid pitch estimate.
     pub fn is_valid(&self) -> bool {
         self.key_max_count > 0
