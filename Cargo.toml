@@ -12,11 +12,9 @@ rand_seeder = "*"
 rand_pcg = "*"
 serde = "*"
 crossbeam-queue = { git = "https://github.com/stjepang/crossbeam", branch = "spsc" }
+crossbeam-channel = "*"
 portaudio = "*"
-tokio = { version = "0.2", default-features = false, features = ["io-std", "macros", "stream", "time"] }
-tokio-tungstenite = "*"
-futures-channel = "0.3"
-futures-util = { version = "0.3", default-features = false, features = ["async-await", "sink", "std"] }
+ws = "*"
 
 [[bench]]
 name = "pitch_detection_result"

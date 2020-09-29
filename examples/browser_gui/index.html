@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>title</title>
+  <script>
+    let webSocket;
+    function connectWebsocket() {
+      if (webSocket === undefined) {
+        webSocket = new WebSocket("ws://127.0.0.1:8080");
+        webSocket.onopen = function (event) {
+          webSocket.send("Here's some text that the server is urgently awaiting!");
+        };
+        webSocket.onmessage = function (event) {
+          console.log(event.data);
+        };
+      }
+    }
+
+    function disconnectWebsocket() {
+      if (webSocket !== undefined) {
+        webSocket.close();
+        webSocket = undefined;
+      }
+    }
+
+    function sendMessage() {
+      if (webSocket !== undefined) {
+        webSocket.send("Hello from browser");
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <button onclick="connectWebsocket()">Connect</button>
+  <button onclick="sendMessage()">Send message</button>
+  <button onclick="disconnectWebsocket()">Disconnect</button>
+</body>
+
+</html>
