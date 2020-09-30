@@ -40,7 +40,7 @@
         var nextLagIndex = 2 * maxLagIndex;
         var maxValue = max.value_at_lag_index;
         var nextMaxValue = pitchReading.nsdf[nextLagIndex]
-        var hasSecondPeak = Math.min(maxValue, nextMaxValue) > 0.5 && Math.abs(maxValue - nextMaxValue) < 0.2;
+        var hasSecondPeak = Math.min(maxValue, nextMaxValue) > 0.85 && Math.abs(maxValue - nextMaxValue) < 0.4;
         return hasSecondPeak
       }
 
@@ -51,18 +51,20 @@
       return document.getElementById(id);
     }
 
-    function clearCanvas(canvasToClear) {
+    function clearCanvas(canvasToClear, color = undefined) {
       var ctx = canvasToClear.getContext("2d");
       var width = ctx.canvas.width;
       var height = ctx.canvas.width;
       ctx.beginPath();
-      ctx.fillStyle = "#f0f0f0";
+      ctx.fillStyle = color ? color : "#f0f0f0";
       ctx.rect(0, 0, width, height);
       ctx.fill();
     }
 
-    function drawPlot(c, xs, ys, color) {
+    function drawPlot(c, xs, ys, color, lineWidth = 1) {
       var ctx = c.getContext("2d");
+      var pr = window.devicePixelRatio
+      ctx.lineWidth = pr * lineWidth;
 
       ctx.beginPath();
       for (let i = 0; i < xs.length; i++) {
@@ -74,8 +76,6 @@
 
     function updateNSDFCanvas(pitchReading) {
       clearCanvas(nsdfCanvas);
-
-      // console.log(pitchReading);
 
       var ctx = nsdfCanvas.getContext("2d");
       var width = ctx.canvas.width;
@@ -106,16 +106,23 @@
           ctx.beginPath();
           ctx.moveTo(x, 0);
           ctx.lineTo(x, height);
+          var clarityAtDoublePeriod = pitchReading.clarity_at_double_period
+          if (clarityAtDoublePeriod) {
+            ctx.moveTo(0, height - height * clarityAtDoublePeriod);
+            ctx.lineTo(width, height - height * clarityAtDoublePeriod);
+          }
+
+          ctx.moveTo(0, height - height * pitchReading.clarity);
+          ctx.lineTo(width, height - height * pitchReading.clarity);
+
           ctx.strokeStyle = "#00ff00";
           ctx.stroke();
         }
-
       }
-
     }
 
     function updatePlotCanvas(pitchReading) {
-      clearCanvas(canvas);
+      clearCanvas(canvas, hasSecondPeak(pitchReading) ? "#B0FFB1" : undefined);
 
       // Remove too old readings
       for (var i = 0; i < pitchReadings.length; i++) {
@@ -131,13 +138,11 @@
 
 
       // Draw plots
-
       var ctx = canvas.getContext("2d");
       var width = ctx.canvas.width;
       var height = ctx.canvas.height;
 
       const tScale = width / timeRange;
-
 
       var curves = [
         { key: "clarity", color: "#ff0000", min: 0, max: 1 },
@@ -148,11 +153,39 @@
         const yScale = height / (curves[i].max - curves[i].min);
         const ys = pitchReadings.map((r) => height - yScale * (r[curves[i].key] - curves[i].min));
         const xs = timestamps.map((t) => width - tScale * (tMax - t))
-        if (hasSecondPeak(pitchReading) === true) {
+
         drawPlot(
-          canvas, xs, ys, curves[i].color, curves[i].min, curves[i].max
+          canvas, xs, ys, curves[i].color
         );
+      }
+
+      // Draw thicker pitch curve when we have a discernable fundamental frequency
+      var curveParts = [];
+      var currentCurvePart = [];
+      for (let i = 0; i < pitchReadings.length; i++) {
+        let reading = pitchReadings[i];
+        let isTone = hasSecondPeak(reading);
+        let prevIsTone = !(i == 0 || !hasSecondPeak(pitchReadings[i - 1]));
+        if (isTone && !prevIsTone) {
+          currentCurvePart = [reading]
+          if (currentCurvePart.length > 0) {
+            curveParts.push(currentCurvePart)
+          }
+        } else if (isTone && prevIsTone) {
+          currentCurvePart.push(reading);
+        }  else if (!isTone && prevIsTone) {
+
         }
+      }
+
+      const yScale = height / (127 - 0);
+      for (let i = 0; i < curveParts.length; i++) {
+        const curvePart = curveParts[i];
+        const ys = curvePart.map((r) => height - yScale * r.note_number)
+        const xs  = curvePart.map((r) => width - tScale * (tMax - r.timestamp));
+        drawPlot(
+          canvas, xs, ys, "#0000ff", 8
+        );
       }
     }
 
