@@ -5,16 +5,30 @@
   <meta charset="utf-8">
   <title>title</title>
   <style>
-    #graph-canvas {
-      width: 800px;
-      height: 500px;
+    body {
+      font-family: sans-serif;
+      font-size: 14px;
     }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      padding-bottom: 30%;
+    }
+
+    canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
   </style>
   <script>
     let webSocket = undefined;
     let reconnectTimer = undefined;
     let canvas = undefined;
     let nsdfCanvas = undefined;
+    let pianoCanvas = undefined;
     let wsUrl = "ws://127.0.0.1:8080";
     let pitchReadings = [];
     let timeRange = 2.0;
@@ -25,8 +39,8 @@
 
     function clearCanvas(canvasToClear) {
       var ctx = canvasToClear.getContext("2d");
-      var width = ctx.canvas.clientWidth;
-      var height = ctx.canvas.clientHeight;
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.width;
       ctx.beginPath();
       ctx.fillStyle = "#f0f0f0";
       ctx.rect(0, 0, width, height);
@@ -50,8 +64,8 @@
       // console.log(pitchReading);
 
       var ctx = nsdfCanvas.getContext("2d");
-      var width = ctx.canvas.clientWidth;
-      var height = ctx.canvas.clientHeight;
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.height;
       var tMin = 0;
       var tMax = pitchReading.lag_count;
       var yMin = -1;
@@ -63,14 +77,25 @@
       }
       drawPlot(nsdfCanvas, xs, ys, "#000000")
 
-
+      var pr = window.devicePixelRatio;
       for (let i = 0; i < pitchReading.key_maxima_count; i++) {
         var x = pitchReading.key_maxima_ser[i].lag * width / (pitchReading.lag_count - 1);
         var y = height - (pitchReading.key_maxima_ser[i].value - yMin) / (yMax - yMin) * height;
+        var isSelectedKeyMax = i == pitchReading.selected_key_max_index;
+        var radius = 0.02 * height;
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = i == pitchReading.selected_key_max_index ? "#00ff00" : "#000000";
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = isSelectedKeyMax ? "#00ff00" : "#000000";
         ctx.fill();
+
+        if (isSelectedKeyMax) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.strokeStyle = "#00ff00";
+          ctx.stroke();
+        }
+
       }
 
     }
@@ -94,8 +119,8 @@
       // Draw plots
 
       var ctx = canvas.getContext("2d");
-      var width = ctx.canvas.clientWidth;
-      var height = ctx.canvas.clientHeight;
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.height;
 
       const tScale = width / timeRange;
 
@@ -138,7 +163,7 @@
           reconnectTimer = window.setInterval(function () {
             connectWebsocket();
           }, retryInterval * 1000);
-          q("connection-info").innerText = "Connection closed.";
+          q("connection-info").innerText = "Connection closed. Trying to reconnect...";
         };
         webSocket.onerror = function (event) {
           console.log("onerror " + JSON.stringify(event));
@@ -160,20 +185,62 @@
       }
     }
 
+    function updateCanvasSizes() {
+      var canvases = [
+        canvas, nsdfCanvas, pianoCanvas
+      ]
+      for (var i = 0; i < canvases.length; i++) {
+        var c = canvases[i];
+        var w = c.clientWidth;
+        var h = c.clientHeight;
+        var ctx = c.getContext("2d")
+        var pr = window.devicePixelRatio
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        ctx.canvas.width = pr * w
+        ctx.canvas.height = pr * h
+        ctx.lineWidth = pr * 1;
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', (event) => {
       canvas = q("plot-canvas");
       nsdfCanvas = q("nsdf-canvas");
+      pianoCanvas = q("piano-canvas");
+
+      updateCanvasSizes();
+
+      clearCanvas(canvas);
+      clearCanvas(nsdfCanvas);
+      clearCanvas(pianoCanvas);
+
       connectWebsocket();
+
+      window.addEventListener("resize", updateCanvasSizes);
     });
   </script>
 </head>
 
 <body>
   <p id="connection-info"></p>
-  <canvas id="plot-canvas">
-  </canvas>
-  <canvas id="nsdf-canvas">
-  </canvas>
+
+  <h3>Pitch and clarity</h3>
+  <div class="canvas-container">
+    <canvas id="plot-canvas">
+    </canvas>
+   </div>
+
+  <h3>NSDF and key maxima</h3>
+  <div class="canvas-container">
+    <canvas id="nsdf-canvas">
+    </canvas>
+  </div>
+
+  <h3>Piano</h3>
+  <div class="canvas-container">
+    <canvas id="piano-canvas">
+    </canvas>
+  </div>
 </body>
 
 </html>
