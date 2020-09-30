@@ -258,16 +258,16 @@ impl PitchDetectionResult {
         // Then select the final maximum
         let mut largest_key_maximum: f32 = 0.0;
         for (i, key_max) in self.key_maxima.iter().enumerate() {
-            let value = key_max.value;
+            let value = key_max.value_at_lag_index;
             if value > largest_key_maximum || i == 0 {
                 largest_key_maximum = value;
             }
         }
 
-        let k: f32 = 0.8;
+        let k: f32 = 0.9;
 
         let threshold = k * largest_key_maximum;
-        for (key_max_index, key_max) in self.key_maxima.iter().enumerate() {
+        for (key_max_index, key_max) in self.key_maxima.iter().take(self.key_max_count).enumerate() {
             if key_max.value >= threshold {
                 self.selected_key_max_index = key_max_index;
                 break;
