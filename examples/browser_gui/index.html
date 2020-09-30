@@ -33,6 +33,20 @@
     let pitchReadings = [];
     let timeRange = 2.0;
 
+    function hasSecondPeak(pitchReading) {
+      if (pitchReading.key_maxima_count > 0) {
+        var max = pitchReading.key_maxima_ser[pitchReading.selected_key_max_index];
+        var maxLagIndex = max.lag_index;
+        var nextLagIndex = 2 * maxLagIndex;
+        var maxValue = max.value_at_lag_index;
+        var nextMaxValue = pitchReading.nsdf[nextLagIndex]
+        var hasSecondPeak = Math.min(maxValue, nextMaxValue) > 0.5 && Math.abs(maxValue - nextMaxValue) < 0.2;
+        return hasSecondPeak
+      }
+
+      return false
+    }
+
     function q(id) {
       return document.getElementById(id);
     }
@@ -134,9 +148,11 @@
         const yScale = height / (curves[i].max - curves[i].min);
         const ys = pitchReadings.map((r) => height - yScale * (r[curves[i].key] - curves[i].min));
         const xs = timestamps.map((t) => width - tScale * (tMax - t))
+        if (hasSecondPeak(pitchReading) === true) {
         drawPlot(
           canvas, xs, ys, curves[i].color, curves[i].min, curves[i].max
         );
+        }
       }
     }
 
