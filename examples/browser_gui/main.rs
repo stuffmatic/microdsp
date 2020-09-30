@@ -68,6 +68,7 @@ impl PitchReadingKeyMax {
 
 #[derive(Serialize)]
 struct PitchReadingInfo {
+    window_size: usize,
     timestamp: f32,
     frequency: f32,
     clarity: f32,
@@ -112,6 +113,7 @@ impl PitchReadingInfo {
 
         PitchReadingInfo {
             timestamp,
+            window_size: result.window.len(),
             frequency: result.frequency,
             clarity: result.clarity,
             note_number: result.note_number,
@@ -148,7 +150,7 @@ impl MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: PitchDetector::new(sample_rate, 512, 256, false),
+            pitch_detector: PitchDetector::new(sample_rate, 1024, 512, false),
             to_main_thread,
             from_main_thread,
         }
