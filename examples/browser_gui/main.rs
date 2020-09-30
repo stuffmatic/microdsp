@@ -7,9 +7,12 @@ use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};
 mod audio;
 use crossbeam_queue::spsc;
 use mpm_pitch::key_maximum::KeyMaximum;
+use mpm_pitch::pitch_detection_result::PitchDetectionResult;
 use mpm_pitch::pitch_detection_result::MAX_KEY_MAXIMA_COUNT;
 use mpm_pitch::pitch_detector::PitchDetector;
 use mpm_pitch::pitch_detector::ProcessingResult;
+use serde::Serialize;
+use serde_json;
 
 type MessageType = String;
 
@@ -43,19 +46,89 @@ impl Handler for WebSocketHandler {
 }
 
 const MAX_NSDF_SIZE: usize = 1024;
+
+#[derive(Copy, Clone, Serialize)]
+pub struct PitchReadingKeyMax {
+    pub lag_index: usize,
+    pub value_at_lag_index: f32,
+    pub value: f32,
+    pub lag: f32,
+}
+
+impl PitchReadingKeyMax {
+    fn new() -> PitchReadingKeyMax {
+        PitchReadingKeyMax {
+            lag_index: 0,
+            lag: 0.,
+            value_at_lag_index: 0.,
+            value: 0.
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct PitchReadingInfo {
+    timestamp: f32,
+    frequency: f32,
+    clarity: f32,
+    note_number: f32,
+    window_rms: f32,
+    window_peak: f32,
+    #[serde(serialize_with = "<[_]>::serialize")]
+    nsdf: [f32; MAX_NSDF_SIZE],
+    lag_count: usize,
+    key_maxima_count: usize,
+    selected_key_max_index: usize,
+    #[serde(skip_serializing)]
+    key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
+    #[serde(serialize_with = "<[_]>::serialize")]
+    key_maxima_ser: [PitchReadingKeyMax; MAX_KEY_MAXIMA_COUNT],
+}
+
+impl PitchReadingInfo {
+    fn new(timestamp: f32, result: &PitchDetectionResult) -> PitchReadingInfo {
+        let mut nsdf = [0.0_f32; MAX_NSDF_SIZE];
+        for (i, val) in result.nsdf.iter().enumerate() {
+            if i >= MAX_NSDF_SIZE {
+                break;
+            }
+            nsdf[i] = *val;
+        }
+        let def = PitchReadingKeyMax {
+            lag_index: 0,
+            lag: 0.,
+            value_at_lag_index: 0.,
+            value: 0.,
+        };
+        let mut key_maxima_ser = [PitchReadingKeyMax::new(); MAX_KEY_MAXIMA_COUNT];
+        for (i, val) in result.key_maxima.iter().enumerate() {
+            key_maxima_ser[i] = PitchReadingKeyMax {
+                lag_index: val.lag_index,
+                value: val.value,
+                value_at_lag_index: val.value_at_lag_index,
+                lag: val.lag,
+            }
+        };
+
+        PitchReadingInfo {
+            timestamp,
+            frequency: result.frequency,
+            clarity: result.clarity,
+            note_number: result.note_number,
+            window_rms: result.window_rms(),
+            window_peak: result.window_peak(),
+            selected_key_max_index: result.selected_key_max_index,
+            nsdf,
+            lag_count: result.nsdf.len(),
+            key_maxima_count: result.key_max_count,
+            key_maxima: result.key_maxima,
+            key_maxima_ser
+        }
+    }
+}
+
 enum MPMAudioProcessorMessage {
-    DetectedPitch {
-        timestamp: f32,
-        frequency: f32,
-        clarity: f32,
-        note_number: f32,
-        window_rms: f32,
-        window_peak: f32,
-        nsdf: [f32; MAX_NSDF_SIZE],
-        lag_count: usize,
-        key_maxima_count: usize,
-        key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
-    },
+    DetectedPitch { info: PitchReadingInfo },
 }
 
 struct MPMAudioProcessor {
@@ -91,24 +164,9 @@ impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
                     let timestamp =
                         ((self.processed_sample_count + sample_offset) as f32) / self.sample_rate;
                     let result = &self.pitch_detector.result;
-                    let mut nsdf = [0.0_f32; MAX_NSDF_SIZE];
-                    for (i, val) in result.nsdf.iter().enumerate() {
-                        if i >= MAX_NSDF_SIZE {
-                            break;
-                        }
-                        nsdf[i] = *val;
-                    }
+
                     let message = MPMAudioProcessorMessage::DetectedPitch {
-                        timestamp,
-                        frequency: result.frequency,
-                        clarity: result.clarity,
-                        note_number: result.note_number,
-                        window_rms: result.window_rms(),
-                        window_peak: result.window_peak(),
-                        key_maxima_count: result.key_max_count,
-                        key_maxima: result.key_maxima.clone(),
-                        lag_count: result.nsdf.len(),
-                        nsdf: nsdf,
+                        info: PitchReadingInfo::new(timestamp, result),
                     };
                     let push_result = self.to_main_thread.push(message);
                     sample_offset = sample_index;
@@ -193,22 +251,9 @@ fn main() {
                     break;
                 }
                 Ok(message) => match message {
-                    MPMAudioProcessorMessage::DetectedPitch {
-                        timestamp,
-                        frequency,
-                        clarity,
-                        note_number,
-                        window_rms,
-                        window_peak,
-                        nsdf,
-                        lag_count,
-                        key_maxima_count,
-                        key_maxima,
-                    } => {
-                        let _ = tx_send.send(format!(
-                            "{{\"t\": {}, \"f\":{}, \"c\": {}, \"n\": {}, \"l\": {}, \"lp\": {}}}",
-                            timestamp, frequency, clarity, note_number, window_rms, window_peak
-                        ));
+                    MPMAudioProcessorMessage::DetectedPitch { info } => {
+                        let st = serde_json::to_string_pretty(&info).unwrap();
+                        let _ = tx_send.send(st);
                         // println!("DetectedPitch: t={}s: {} Hz, clarity {}, RMS {} dB", timestamp, frequency, clarity, window_rms_db)
                     }
                 },

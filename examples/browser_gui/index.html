@@ -14,6 +14,7 @@
     let webSocket = undefined;
     let reconnectTimer = undefined;
     let canvas = undefined;
+    let nsdfCanvas = undefined;
     let wsUrl = "ws://127.0.0.1:8080";
     let pitchReadings = [];
     let timeRange = 2.0;
@@ -22,8 +23,8 @@
       return document.getElementById(id);
     }
 
-    function clearCanvas() {
-      var ctx = canvas.getContext("2d");
+    function clearCanvas(canvasToClear) {
+      var ctx = canvasToClear.getContext("2d");
       var width = ctx.canvas.clientWidth;
       var height = ctx.canvas.clientHeight;
       ctx.beginPath();
@@ -32,50 +33,85 @@
       ctx.fill();
     }
 
-    function refreshCanvas(pitchReading) {
+    function drawPlot(c, xs, ys, color) {
+      var ctx = c.getContext("2d");
+
+      ctx.beginPath();
+      for (let i = 0; i < xs.length; i++) {
+        ctx.lineTo(xs[i], ys[i]);
+      }
+      ctx.strokeStyle = color;
+      ctx.stroke()
+    }
+
+    function updateNSDFCanvas(pitchReading) {
+      clearCanvas(nsdfCanvas);
+
+      // console.log(pitchReading);
+
+      var ctx = nsdfCanvas.getContext("2d");
+      var width = ctx.canvas.clientWidth;
+      var height = ctx.canvas.clientHeight;
+      var tMin = 0;
+      var tMax = pitchReading.lag_count;
+      var yMin = -1;
+      var yMax = 1;
+      var ys = pitchReading.nsdf.map((v) => height - (v - yMin) / (yMax - yMin) * height )
+      var xs = []
+      for (let i = 0; i < pitchReading.lag_count; i++) {
+        xs.push(i * width / (pitchReading.lag_count - 1))
+      }
+      drawPlot(nsdfCanvas, xs, ys, "#000000")
+
+
+      for (let i = 0; i < pitchReading.key_maxima_count; i++) {
+        var x = pitchReading.key_maxima_ser[i].lag * width / (pitchReading.lag_count - 1);
+        var y = height - (pitchReading.key_maxima_ser[i].value - yMin) / (yMax - yMin) * height;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = i == pitchReading.selected_key_max_index ? "#00ff00" : "#000000";
+        ctx.fill();
+      }
+
+    }
+
+    function updatePlotCanvas(pitchReading) {
+      clearCanvas(canvas);
+
       // Remove too old readings
       for (var i = 0; i < pitchReadings.length; i++) {
-        if (pitchReading.t - pitchReadings[i].t > timeRange) {
+        if (pitchReading.timestamp - pitchReadings[i].timestamp > timeRange) {
           pitchReadings = pitchReadings.slice(i)
         }
       }
       // Add newest reading
       pitchReadings.push(pitchReading);
-      var timestamps = pitchReadings.map((reading) => reading.t);
-      var tMax = pitchReading.t;
+      var timestamps = pitchReadings.map((reading) => reading.timestamp);
+      var tMax = pitchReading.timestamp;
+
+
+
+      // Draw plots
 
       var ctx = canvas.getContext("2d");
-
       var width = ctx.canvas.clientWidth;
       var height = ctx.canvas.clientHeight;
 
-      // Draw plots
-      clearCanvas();
+      const tScale = width / timeRange;
 
-      function drawPlot(ts, values, color, min, max) {
-        const yScale = height / (max - min);
-        const tScale = width / timeRange;
-        ctx.beginPath();
-        for (let i = 0; i < ts.length; i++) {
-          let t = ts[i];
-          let value = values[i];
-          let y = height - yScale * (value - min);
-          let x = width - tScale * (tMax - t);
-          ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = color;
-        ctx.stroke()
-      }
 
       var curves = [
-        { key: "c", color: "#ff0000", min: 0, max: 1 },
-        { key: "l", color: "#00ff00", min: 0, max: 1 },
-        { key: "n", color: "#0000ff", min: 0, max: 127 }
+        { key: "clarity", color: "#ff0000", min: 0, max: 1 },
+        { key: "window_rms", color: "#00ff00", min: 0, max: 1 },
+        { key: "note_number", color: "#0000ff", min: 0, max: 127 }
       ]
-
       for (let i = 0; i < curves.length; i++) {
-        const values = pitchReadings.map((r) => r[curves[i].key])
-        drawPlot(timestamps, values, curves[i].color, curves[i].min, curves[i].max);
+        const yScale = height / (curves[i].max - curves[i].min);
+        const ys = pitchReadings.map((r) => height - yScale * (r[curves[i].key] - curves[i].min));
+        const xs = timestamps.map((t) => width - tScale * (tMax - t))
+        drawPlot(
+          canvas, xs, ys, curves[i].color, curves[i].min, curves[i].max
+        );
       }
     }
 
@@ -83,17 +119,18 @@
       if (webSocket === undefined) {
         webSocket = new WebSocket(wsUrl);
         webSocket.onopen = function (event) {
+          // clearCanvas();
           window.clearInterval(reconnectTimer);
           q("connection-info").innerText = "Connected to " + wsUrl;
           console.log("onopen " + JSON.stringify(event));
         };
         webSocket.onmessage = function (event) {
           var pitchReading = JSON.parse(event.data);
-          refreshCanvas(pitchReading);
+          updatePlotCanvas(pitchReading);
+          updateNSDFCanvas(pitchReading);
           // console.log(pitchReading);
         };
         webSocket.onclose = function (event) {
-          clearCanvas();
           pitchReadings = [];
           destroyWebsocket();
           console.log("onclose " + JSON.stringify(event));
@@ -103,7 +140,7 @@
           }, retryInterval * 1000);
           q("connection-info").innerText = "Connection closed.";
         };
-        webSocket.onerror = function(event) {
+        webSocket.onerror = function (event) {
           console.log("onerror " + JSON.stringify(event));
         }
       }
@@ -125,6 +162,7 @@
 
     window.addEventListener('DOMContentLoaded', (event) => {
       canvas = q("plot-canvas");
+      nsdfCanvas = q("nsdf-canvas");
       connectWebsocket();
     });
   </script>
@@ -133,7 +171,8 @@
 <body>
   <p id="connection-info"></p>
   <canvas id="plot-canvas">
-
+  </canvas>
+  <canvas id="nsdf-canvas">
   </canvas>
 </body>
 
