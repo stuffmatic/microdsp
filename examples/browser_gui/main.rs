@@ -6,6 +6,8 @@ use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};
 
 mod audio;
 use crossbeam_queue::spsc;
+use mpm_pitch::key_maximum::KeyMaximum;
+use mpm_pitch::pitch_detection_result::MAX_KEY_MAXIMA_COUNT;
 use mpm_pitch::pitch_detector::PitchDetector;
 use mpm_pitch::pitch_detector::ProcessingResult;
 
@@ -40,6 +42,7 @@ impl Handler for WebSocketHandler {
     }
 }
 
+const MAX_NSDF_SIZE: usize = 1024;
 enum MPMAudioProcessorMessage {
     DetectedPitch {
         timestamp: f32,
@@ -47,9 +50,11 @@ enum MPMAudioProcessorMessage {
         clarity: f32,
         note_number: f32,
         window_rms: f32,
-        window_rms_db: f32,
         window_peak: f32,
-        window_peak_db: f32,
+        nsdf: [f32; MAX_NSDF_SIZE],
+        lag_count: usize,
+        key_maxima_count: usize,
+        key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
     },
 }
 
@@ -86,18 +91,26 @@ impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
                     let timestamp =
                         ((self.processed_sample_count + sample_offset) as f32) / self.sample_rate;
                     let result = &self.pitch_detector.result;
-                    let push_result =
-                        self.to_main_thread
-                            .push(MPMAudioProcessorMessage::DetectedPitch {
-                                timestamp,
-                                frequency: result.frequency,
-                                clarity: result.clarity,
-                                note_number: result.note_number,
-                                window_rms: result.window_rms(),
-                                window_rms_db: result.window_rms_db(),
-                                window_peak: result.window_peak(),
-                                window_peak_db: result.window_peak_db(),
-                            });
+                    let mut nsdf = [0.0_f32; MAX_NSDF_SIZE];
+                    for (i, val) in result.nsdf.iter().enumerate() {
+                        if i >= MAX_NSDF_SIZE {
+                            break;
+                        }
+                        nsdf[i] = *val;
+                    }
+                    let message = MPMAudioProcessorMessage::DetectedPitch {
+                        timestamp,
+                        frequency: result.frequency,
+                        clarity: result.clarity,
+                        note_number: result.note_number,
+                        window_rms: result.window_rms(),
+                        window_peak: result.window_peak(),
+                        key_maxima_count: result.key_max_count,
+                        key_maxima: result.key_maxima.clone(),
+                        lag_count: result.nsdf.len(),
+                        nsdf: nsdf,
+                    };
+                    let push_result = self.to_main_thread.push(message);
                     sample_offset = sample_index;
                 }
                 _ => {
@@ -181,26 +194,21 @@ fn main() {
                 }
                 Ok(message) => match message {
                     MPMAudioProcessorMessage::DetectedPitch {
-                      timestamp,
-                      frequency,
-                      clarity,
-                      note_number,
-                      window_rms,
-                      window_rms_db,
-                      window_peak,
-                      window_peak_db
+                        timestamp,
+                        frequency,
+                        clarity,
+                        note_number,
+                        window_rms,
+                        window_peak,
+                        nsdf,
+                        lag_count,
+                        key_maxima_count,
+                        key_maxima,
                     } => {
-                        let _ = tx_send.send(
-                            format!(
-                                "{{\"t\": {}, \"f\":{}, \"c\": {}, \"n\": {}, \"l\": {}, \"lp\": {}}}",
-                                timestamp,
-                                frequency,
-                                clarity,
-                                note_number,
-                                window_rms,
-                                window_peak
-                            )
-                        );
+                        let _ = tx_send.send(format!(
+                            "{{\"t\": {}, \"f\":{}, \"c\": {}, \"n\": {}, \"l\": {}, \"lp\": {}}}",
+                            timestamp, frequency, clarity, note_number, window_rms, window_peak
+                        ));
                         // println!("DetectedPitch: t={}s: {} Hz, clarity {}, RMS {} dB", timestamp, frequency, clarity, window_rms_db)
                     }
                 },
@@ -209,5 +217,7 @@ fn main() {
     }
 
     socket_join_handle.join().expect("Websocket thread failed");
-    broadcaster_join_handle.join().expect("Broadcaster thread failed");
+    broadcaster_join_handle
+        .join()
+        .expect("Broadcaster thread failed");
 }

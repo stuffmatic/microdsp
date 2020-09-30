@@ -22,6 +22,16 @@
       return document.getElementById(id);
     }
 
+    function clearCanvas() {
+      var ctx = canvas.getContext("2d");
+      var width = ctx.canvas.clientWidth;
+      var height = ctx.canvas.clientHeight;
+      ctx.beginPath();
+      ctx.fillStyle = "#f0f0f0";
+      ctx.rect(0, 0, width, height);
+      ctx.fill();
+    }
+
     function refreshCanvas(pitchReading) {
       // Remove too old readings
       for (var i = 0; i < pitchReadings.length; i++) {
@@ -34,16 +44,13 @@
       var timestamps = pitchReadings.map((reading) => reading.t);
       var tMax = pitchReading.t;
 
-      console.log("# readings " + pitchReadings.length);
-
-      // Draw plots
       var ctx = canvas.getContext("2d");
+
       var width = ctx.canvas.clientWidth;
       var height = ctx.canvas.clientHeight;
-      ctx.beginPath();
-      ctx.fillStyle = "#f0f0f0";
-      ctx.rect(0, 0, width, height);
-      ctx.fill();
+
+      // Draw plots
+      clearCanvas();
 
       function drawPlot(ts, values, color, min, max) {
         const yScale = height / (max - min);
@@ -62,7 +69,8 @@
 
       var curves = [
         { key: "c", color: "#ff0000", min: 0, max: 1 },
-        { key: "l", color: "#00ff00", min: 0, max: 1 }
+        { key: "l", color: "#00ff00", min: 0, max: 1 },
+        { key: "n", color: "#0000ff", min: 0, max: 127 }
       ]
 
       for (let i = 0; i < curves.length; i++) {
@@ -85,6 +93,8 @@
           // console.log(pitchReading);
         };
         webSocket.onclose = function (event) {
+          clearCanvas();
+          pitchReadings = [];
           destroyWebsocket();
           console.log("onclose " + JSON.stringify(event));
           var retryInterval = 2.0;
