@@ -25,7 +25,7 @@ pub struct PitchDetector {
     pub result: PitchDetectionResult,
 }
 
-/// The result of passing a chunk to the pitch detector.
+/// The result of passing a chunk to the pitch detector. TODO: Rename this
 pub enum ProcessingResult {
     /// Enough samples were consumed to fill and process a new window.
     ProcessedWindow {

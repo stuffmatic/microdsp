@@ -19,11 +19,6 @@ class CanvasBase {
     const width = this.canvasElement.clientWidth
     const height = this.canvasElement.clientHeight
 
-    console.log(width, height)
-
-    this.canvasElement.style.width = width + "px"
-    this.canvasElement.style.height = height + "px"
-
     const scale = window.devicePixelRatio
     this.context.canvas.width = scale * width
     this.context.canvas.height = scale * height

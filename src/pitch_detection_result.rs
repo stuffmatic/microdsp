@@ -124,7 +124,6 @@ fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: u
 }
 
 /// The maximum number of key maxima to gather during the peak finding phase.
-pub const MAX_KEY_MAXIMA_COUNT: usize = 16;
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;
 /// A pitch detection result.
 pub struct PitchDetectionResult {

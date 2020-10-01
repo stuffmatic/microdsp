@@ -21,9 +21,66 @@ struct WebSocketHandler {
 
 trait ToneClassification {
     fn key_max_spread(&self) -> Option<f32>;
+    fn clarity_at_double_period(&self) -> Option<f32>;
+    fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum>;
 }
 
 impl ToneClassification for PitchDetectionResult {
+    // does not use interpolated lags and values. Not ideal.
+    fn clarity_at_double_period(&self) -> Option<f32> {
+        if self.key_max_count == 0 {
+            return None
+        }
+
+        let selected_max = &self.key_maxima[self.selected_key_max_index];
+        let lag_index_of_next_expected_max = 2 * selected_max.lag_index;
+        if lag_index_of_next_expected_max < self.nsdf.len() {
+            return Some(self.nsdf[lag_index_of_next_expected_max]);
+        }
+
+        None
+    }
+
+    //
+    fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum> {
+        if self.key_max_count == 0 {
+            return None
+        }
+
+        let selected_max = &self.key_maxima[self.selected_key_max_index];
+        let lag_of_next_expected_max = 2.0 * selected_max.lag;
+        let mut min_distance: f32 = 0.;
+        let mut min_index: usize = 0;
+        let mut found_max = false;
+        let start_index = self.selected_key_max_index + 1;
+        for i in start_index..self.key_max_count {
+            let key_max = self.key_maxima[i];
+            if key_max.lag_index == self.nsdf.len() - 1 {
+                // Ignore the key max at the last lag, since it's
+                // probably not a proper key maximum.
+                break;
+            }
+            let distance = (key_max.lag - lag_of_next_expected_max).abs();
+            if i == start_index {
+                min_distance = distance;
+                min_index = i;
+            } else {
+                if distance < min_distance {
+                    min_distance = distance;
+                    min_index = i;
+                }
+            }
+            found_max = true;
+        }
+
+        if found_max {
+            assert!(min_index > self.selected_key_max_index);
+            return Some(self.key_maxima[min_index])
+        }
+        None
+    }
+
+    // Works well for tones with less overtones. Probably not a general solution
     fn key_max_spread(&self) -> Option<f32> {
         if self.key_max_count == 0 {
             return None;
@@ -105,7 +162,7 @@ impl PitchReadingKeyMax {
     }
 }
 
-const MAX_KEY_MAXIMA_COUNT: usize = 16;
+const MAX_KEY_MAXIMA_COUNT: usize = 64;
 
 #[derive(Serialize)]
 struct PitchReadingInfo {
@@ -154,7 +211,20 @@ impl PitchReadingInfo {
             }
         }
 
-        /*let is_tone = match result.clarity_at_double_period {
+        let is_tone = match result.key_max_closest_to_double_period() {
+            Some(next_max) => {
+                let max = result.key_maxima[result.selected_key_max_index];
+                let delta_lag = next_max.lag - max.lag;
+                let delta_value = next_max.value - max.value;
+                let rel_lag_difference = delta_lag.abs() / max.lag;
+                // println!("rel_lag_difference {}, delta_value {}", rel_lag_difference, delta_value);
+                result.clarity > 0.8 && rel_lag_difference > 0.9 && delta_value.abs() < 0.1
+            },
+            None => {
+                result.clarity > 0.8
+            }
+        };
+        /*let is_tone = match result.clarity_at_double_period() {
             Some(c) => {
                 result.clarity > 0.8 && (result.clarity - c).abs() < 0.1
             },
@@ -162,10 +232,10 @@ impl PitchReadingInfo {
                 result.selected_key_max_index == 0 && result.clarity > 0.8
             }
         };*/
-        let is_tone = match result.key_max_spread() {
+        /*let is_tone = match result.key_max_spread() {
             Some(c) => result.clarity > 0.8 && c.abs() > 0.9,
             None => false,
-        };
+        };*/
 
         PitchReadingInfo {
             timestamp,
@@ -291,6 +361,7 @@ fn main() {
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
     println!("Open index.html in a web browser");
 
+    let mut loop_count: usize = 0;
     loop {
         thread::sleep(Duration::from_millis(poll_interval_ms));
 
@@ -314,13 +385,17 @@ fn main() {
                 }
                 Ok(message) => match message {
                     MPMAudioProcessorMessage::DetectedPitch { info } => {
-                        let st = serde_json::to_string_pretty(&info).unwrap();
-                        let _ = tx_send.send(st);
+                        if loop_count % 2 == 0 {
+                            let st = serde_json::to_string_pretty(&info).unwrap();
+                            let _ = tx_send.send(st);
+                        }
                         // println!("DetectedPitch: t={}s: {} Hz, clarity {}, RMS {} dB", timestamp, frequency, clarity, window_rms_db)
                     }
                 },
             }
         }
+
+        loop_count += 1
     }
 
     socket_join_handle.join().expect("Websocket thread failed");
