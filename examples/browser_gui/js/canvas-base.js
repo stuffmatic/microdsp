@@ -8,7 +8,7 @@ class CanvasBase {
 
   clear(color = undefined) {
     const width = this.context.canvas.width
-    const height = this.context.canvas.width
+    const height = this.context.canvas.height
     this.context.beginPath()
     this.context.fillStyle = color ? color : Palette.plotBackground
     this.context.rect(0, 0, width, height)

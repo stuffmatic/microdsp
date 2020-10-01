@@ -1,4 +1,5 @@
 * https://github.com/sevagh/pitch-detection
+* https://www.szynalski.com/tone-generator/
 * real-only FFT
 * equal loudness filter
 * slices instead of Vec

@@ -49,9 +49,10 @@ class GUI {
         // console.log("onopen " + JSON.stringify(event));
       };
       this.webSocket.onmessage = (event) => {
-        const pitchReading = JSON.parse(event.data);
-        this.appendPitchReading(pitchReading)
         if (!this.isPaused) {
+          const pitchReading = JSON.parse(event.data);
+          // console.log(pitchReading.note_number)
+          this.appendPitchReading(pitchReading)
           this.renderCanvases()
         }
       };
@@ -98,6 +99,10 @@ class GUI {
 
   togglePaused() {
     this.isPaused = !this.isPaused
+    if (!this.isPaused) {
+      this.pitchReadings = []
+    }
+    this.renderCanvases()
   }
 
   onResize() {

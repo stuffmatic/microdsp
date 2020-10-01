@@ -3,7 +3,13 @@ class PitchCanvas extends CanvasBase {
   drawPitchAndClarity = true
 
   render(pitchReadings, timeRange) {
-    this.clear()
+    let clearColor = Palette.plotBackground
+    if (pitchReadings.length > 0) {
+      if (pitchReadings[pitchReadings.length - 1].is_tone) {
+        clearColor = Palette.plotBackgroundTone
+      }
+    }
+    this.clear(clearColor)
     if (pitchReadings.length < 2) {
       return
     }
@@ -52,7 +58,7 @@ class PitchCanvas extends CanvasBase {
         const xCoords = curvePart.map((r) => this.xToScreen(r.timestamp, tMax - timeRange, tMax));
         const yCoords = curvePart.map((r) => this.yToScreen(r.note_number, noteCurveMeta.min, noteCurveMeta.max))
         this.drawPolyline(
-          xCoords, yCoords, Palette.pitch, 12
+          xCoords, yCoords, Palette.pitch, 8
         );
       }
     }

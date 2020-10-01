@@ -1,6 +1,10 @@
 class NSDFCanvas extends CanvasBase {
   render(pitchReading) {
-    this.clear()
+    let clearColor = Palette.plotBackground
+    if (pitchReading !== undefined && pitchReading.is_tone) {
+      clearColor = Palette.plotBackgroundTone
+    }
+    this.clear(clearColor)
 
     if (pitchReading === undefined) {
       return
