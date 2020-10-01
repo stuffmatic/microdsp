@@ -131,14 +131,8 @@ pub struct PitchDetectionResult {
     pub frequency: f32,
     /// The value of the NSDF at the maximum corresponding to the pitch period.
     /// Between 0 and 1 (inclusive). Values close to 1 indicate pure tones and values
-    /// close to 0 indicate lack of a discernable pitch.
+    /// close to 0 indicate lack of a discernable pitch. TODO: MORE ON TONE CATEGORIZATION
     pub clarity: f32,
-    /// The value of the NSDF at twice the pitch period. Useful for
-    /// determining if the result has a discernable fundamental frequency,
-    /// in which case both `clarity` and this value should be close to 1.
-    /// This value may be None if the lag corresponding to the double pitch
-    /// period exceeds the maximum lag.
-    pub clarity_at_double_period: Option<f32>,
     /// The [MIDI note number](https://newt.phys.unsw.edu.au/jw/notes.html) corresponding to the pitch frequency.
     pub note_number: f32,
     /// The estimated pitch period in samples.
@@ -165,7 +159,6 @@ impl PitchDetectionResult {
             note_number: 0.0,
             window: vec![0.0; window_size],
             nsdf: vec![0.0; lag_count],
-            clarity_at_double_period: None,
             r_prime: vec![microfft::Complex32::new(0.0, 0.0); autocorr_fft_size(window_size, lag_count)],
             key_max_count: 0,
             key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
@@ -222,7 +215,6 @@ impl PitchDetectionResult {
     }
 
     fn reset(&mut self) {
-        self.clarity_at_double_period = None;
         self.frequency = 0.0;
         self.clarity = 0.0;
         self.note_number = 0.0;
@@ -296,17 +288,6 @@ impl PitchDetectionResult {
             if key_max.value >= threshold {
                 self.selected_key_max_index = key_max_index;
                 break;
-            }
-        }
-
-        // Compute the clarity, i.e the NSDF value, at twice the
-        // pitch period.
-        // TODO: use parabolic interpolation here?
-        if self.key_max_count > 0 {
-            let maximum = self.key_maxima[self.selected_key_max_index];
-            let double_period_lag_index = 2 * maximum.lag_index;
-            if double_period_lag_index < self.nsdf.len() {
-                self.clarity_at_double_period = Some(self.nsdf[double_period_lag_index])
             }
         }
     }

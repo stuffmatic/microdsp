@@ -22,7 +22,7 @@ class PianoCanvas extends CanvasBase {
     const height = this.context.canvas.height
     const octaveWidth = width / this.numberOfOctaves
 
-    // Draw keys
+    // Draw keys.
     const whiteKeyWidth = octaveWidth / 7
     for (let i = 0; i < this.numberOfOctaves; i++) {
       const octaveLeft = i * octaveWidth

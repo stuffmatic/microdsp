@@ -16,7 +16,9 @@ class GUI {
   // A list of pitch readings. Old readings get thrown
   // out as new are added
   timeRange = 2.0
-  pitchReadings = []
+  latestPitchReading = undefined
+  // { timestamp, noteNumber, clarity, rmsLevel, isTone }
+  frequencyPlotPoints = []
 
   constructor() {
     // Get HTML elements
@@ -82,19 +84,27 @@ class GUI {
   }
 
   appendPitchReading(newReading) {
+    this.latestPitchReading = newReading
+
     // Remove too old readings
-    if (this.pitchReadings.length > 1) {
-      const tMax = this.pitchReadings[this.pitchReadings.length - 1].timestamp
-      for (let i = 0; i < this.pitchReadings.length; i++) {
-        if (tMax - this.pitchReadings[i].timestamp <= this.timeRange) {
-          this.pitchReadings = this.pitchReadings.slice(i)
+    if (this.frequencyPlotPoints.length > 1) {
+      const tMax = this.frequencyPlotPoints[this.frequencyPlotPoints.length - 1].timestamp
+      for (let i = 0; i < this.frequencyPlotPoints.length; i++) {
+        if (tMax - this.frequencyPlotPoints[i].timestamp <= this.timeRange) {
+          this.frequencyPlotPoints = this.frequencyPlotPoints.slice(i)
           break
         }
       }
     }
 
     // Add newest reading
-    this.pitchReadings.push(newReading)
+    this.frequencyPlotPoints.push({
+      timestamp: newReading.timestamp,
+      clarity: newReading.clarity,
+      noteNumber: newReading.note_number,
+      rmsLevel: newReading.window_rms,
+      isTone: newReading.is_tone
+    })
   }
 
   togglePaused() {
@@ -114,10 +124,9 @@ class GUI {
   }
 
   renderCanvases() {
-    this.pitchCanvas.render(this.pitchReadings, this.timeRange)
-    const latestPitchReading = this.pitchReadings[this.pitchReadings.length - 1]
-    this.nsdfCanvas.render(latestPitchReading)
-    this.pianoCanvas.render(latestPitchReading)
+    this.pitchCanvas.render(this.frequencyPlotPoints, this.timeRange)
+    this.nsdfCanvas.render(this.latestPitchReading)
+    this.pianoCanvas.render(this.latestPitchReading)
   }
 }
 

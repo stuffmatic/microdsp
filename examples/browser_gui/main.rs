@@ -20,6 +20,46 @@ struct WebSocketHandler {
     tx: crossbeam_channel::Sender<MessageType>,
 }
 
+trait ToneClassification {
+    fn key_max_spread(&self) -> Option<f32>;
+}
+
+impl ToneClassification for PitchDetectionResult {
+    fn key_max_spread(&self) -> Option<f32> {
+        if self.key_max_count == 0 {
+            return None
+        }
+
+        let mut prev_lag: f32 = 0.;
+        let mut min_distance = 0.0_f32;
+        let mut max_distance = 0.0_f32;
+        for i in 0..self.key_max_count {
+            let key_max = self.key_maxima[i];
+            if key_max.lag_index == self.nsdf.len() - 1 {
+                // ignore last NSDF sample, since it's probably not a real maximum
+                break;
+            }
+            let lag = key_max.lag;
+            let distance = lag - prev_lag;
+            if i == 0 {
+                min_distance = distance;
+                max_distance = distance;
+            } else {
+                if distance > max_distance {
+                    max_distance = distance
+                }
+                if distance < min_distance {
+                    min_distance = distance
+                }
+            }
+
+            prev_lag = lag;
+        }
+
+        return Some(min_distance / max_distance);
+    }
+}
+
 // https://www.jan-prochazka.eu/ws-rs/guide.html
 // https://github.com/housleyjk/ws-rs/issues/131
 
@@ -72,7 +112,7 @@ struct PitchReadingInfo {
     timestamp: f32,
     frequency: f32,
     clarity: f32,
-    clarity_at_double_period: Option<f32>,
+    key_max_spread: Option<f32>,
     note_number: f32,
     window_rms: f32,
     window_peak: f32,
@@ -113,12 +153,20 @@ impl PitchReadingInfo {
             }
         };
 
-        let is_tone = match result.clarity_at_double_period {
+        /*let is_tone = match result.clarity_at_double_period {
             Some(c) => {
                 result.clarity > 0.8 && (result.clarity - c).abs() < 0.1
             },
             None => {
                 result.selected_key_max_index == 0 && result.clarity > 0.8
+            }
+        };*/
+        let is_tone = match result.key_max_spread() {
+            Some(c) => {
+                result.clarity > 0.8 && c.abs() > 0.9
+            },
+            None => {
+                false
             }
         };
 
@@ -127,7 +175,7 @@ impl PitchReadingInfo {
             window_size: result.window.len(),
             frequency: result.frequency,
             clarity: result.clarity,
-            clarity_at_double_period: result.clarity_at_double_period,
+            key_max_spread: result.key_max_spread(),
             is_tone,
             note_number: result.note_number,
             window_rms: result.window_rms(),
