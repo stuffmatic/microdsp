@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use mpm_pitch::pitch_detection_result::PitchDetectionResult;
+use mpm_pitch::PitchDetectionResult;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let window_size: usize = 1024;
