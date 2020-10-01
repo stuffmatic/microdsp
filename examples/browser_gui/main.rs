@@ -6,11 +6,10 @@ use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};
 
 mod audio;
 use crossbeam_queue::spsc;
-use mpm_pitch::key_maximum::KeyMaximum;
-use mpm_pitch::pitch_detection_result::PitchDetectionResult;
-use mpm_pitch::pitch_detection_result::MAX_KEY_MAXIMA_COUNT;
-use mpm_pitch::pitch_detector::PitchDetector;
-use mpm_pitch::pitch_detector::ProcessingResult;
+use mpm_pitch::KeyMaximum;
+use mpm_pitch::PitchDetectionResult;
+use mpm_pitch::PitchDetector;
+use mpm_pitch::ProcessingResult;
 use serde::Serialize;
 use serde_json;
 
@@ -105,6 +104,8 @@ impl PitchReadingKeyMax {
         }
     }
 }
+
+const MAX_KEY_MAXIMA_COUNT: usize = 16;
 
 #[derive(Serialize)]
 struct PitchReadingInfo {

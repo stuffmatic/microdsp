@@ -15,8 +15,8 @@
 //! samples into (possibly overlapping) windows and processing each newly filled window.
 //!
 //! ```
-//! use mpm_pitch::pitch_detector::PitchDetector;
-//! use mpm_pitch::pitch_detector::ProcessingResult;
+//! use mpm_pitch::PitchDetector;
+//! use mpm_pitch::ProcessingResult;
 //!
 //! // Create a pitch detector instance
 //! let sample_rate = 44100.0;
@@ -57,7 +57,7 @@
 //! ## Single window API
 //! Used to process a window directly. Useful for profiling and testing.
 //! ```
-//! use mpm_pitch::pitch_detection_result::PitchDetectionResult;
+//! use mpm_pitch::PitchDetectionResult;
 //!
 //! // Create an instance of PitchDetectionResult
 //! let sample_rate = 44100.0;
@@ -76,7 +76,12 @@
 //! println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //! ```
 
+mod key_maximum;
 mod equal_loudness_filter;
-pub mod key_maximum;
-pub mod pitch_detection_result;
-pub mod pitch_detector;
+mod pitch_detection_result;
+mod pitch_detector;
+
+pub use key_maximum::KeyMaximum;
+pub use pitch_detection_result::PitchDetectionResult;
+pub use pitch_detector::PitchDetector;
+pub use pitch_detector::ProcessingResult;
