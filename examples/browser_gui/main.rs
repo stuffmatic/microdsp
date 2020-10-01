@@ -27,7 +27,7 @@ trait ToneClassification {
 impl ToneClassification for PitchDetectionResult {
     fn key_max_spread(&self) -> Option<f32> {
         if self.key_max_count == 0 {
-            return None
+            return None;
         }
 
         let mut prev_lag: f32 = 0.;
@@ -101,7 +101,7 @@ impl PitchReadingKeyMax {
             lag_index: 0,
             lag: 0.,
             value_at_lag_index: 0.,
-            value: 0.
+            value: 0.,
         }
     }
 }
@@ -151,7 +151,7 @@ impl PitchReadingInfo {
                 value_at_lag_index: val.value_at_lag_index,
                 lag: val.lag,
             }
-        };
+        }
 
         /*let is_tone = match result.clarity_at_double_period {
             Some(c) => {
@@ -162,12 +162,8 @@ impl PitchReadingInfo {
             }
         };*/
         let is_tone = match result.key_max_spread() {
-            Some(c) => {
-                result.clarity > 0.8 && c.abs() > 0.9
-            },
-            None => {
-                false
-            }
+            Some(c) => result.clarity > 0.8 && c.abs() > 0.9,
+            None => false,
         };
 
         PitchReadingInfo {
@@ -185,7 +181,7 @@ impl PitchReadingInfo {
             lag_count: result.nsdf.len(),
             key_maxima_count: result.key_max_count,
             key_maxima: result.key_maxima,
-            key_maxima_ser
+            key_maxima_ser,
         }
     }
 }

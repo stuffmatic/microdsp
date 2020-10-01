@@ -31,7 +31,7 @@ pub enum ProcessingResult {
     ProcessedWindow {
         /// The index of the next sample to process in the input buffer,
         /// i.e the sample offset to pass to the next call to `process`.
-        sample_index: usize
+        sample_index: usize,
     },
     /// Consumed all samples of the input buffer.
     ReachedEndOfBuffer,
@@ -97,7 +97,8 @@ impl PitchDetector {
                 if should_process_window {
                     // Extract the window to analyze.
                     for target_index in 0..self.window_size {
-                        let src_index = (self.input_buffer_write_index + target_index) % self.window_size;
+                        let src_index =
+                            (self.input_buffer_write_index + target_index) % self.window_size;
                         self.result.window[target_index] = self.input_buffer[src_index];
                     }
 
@@ -108,7 +109,7 @@ impl PitchDetector {
                 if should_process_window {
                     return ProcessingResult::ProcessedWindow {
                         sample_index: sample_index + 1,
-                    }
+                    };
                 }
             }
         }
@@ -132,8 +133,7 @@ mod tests {
             let sine_value = (2.0 * std::f32::consts::PI * f * (i as f32) / sample_rate).sin();
             window[i] = sine_value;
         }
-        let mut detector =
-            PitchDetector::new(sample_rate, window_size, window_overlap, true);
+        let mut detector = PitchDetector::new(sample_rate, window_size, window_overlap, true);
 
         let mut sample_offset: usize = 0;
         while sample_offset < window.len() {
@@ -170,18 +170,13 @@ mod tests {
 
     #[test]
     fn test_process_beyond_last_sample() {
-        let mut detector = PitchDetector::new(
-            44100.0,
-            1024,
-            3 * 256,
-            true
-        );
+        let mut detector = PitchDetector::new(44100.0, 1024, 3 * 256, true);
         let buffer: Vec<f32> = vec![0.0; 10000];
         match detector.process(&buffer[..], buffer.len()) {
             ProcessingResult::ReachedEndOfBuffer => {
                 // Expected
-            },
-            _ => assert!(false)
+            }
+            _ => assert!(false),
         }
     }
 
@@ -191,7 +186,11 @@ mod tests {
         for i in 0..buffer.len() {
             let is_start_of_window = i % window_distance == 0;
             let window_index = i / window_distance;
-            let value = if is_start_of_window { window_index } else { 100 * window_index + i } ;
+            let value = if is_start_of_window {
+                window_index
+            } else {
+                100 * window_index + i
+            };
             buffer[i] = value as f32;
         }
 

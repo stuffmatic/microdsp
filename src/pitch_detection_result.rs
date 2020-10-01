@@ -159,7 +159,10 @@ impl PitchDetectionResult {
             note_number: 0.0,
             window: vec![0.0; window_size],
             nsdf: vec![0.0; lag_count],
-            r_prime: vec![microfft::Complex32::new(0.0, 0.0); autocorr_fft_size(window_size, lag_count)],
+            r_prime: vec![
+                microfft::Complex32::new(0.0, 0.0);
+                autocorr_fft_size(window_size, lag_count)
+            ],
             key_max_count: 0,
             key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
             selected_key_max_index: 0,
@@ -257,7 +260,11 @@ impl PitchDetectionResult {
                 if is_last_lag {
                     // Reached the last lag while looking for a new max.
                     if self.key_max_count < self.key_maxima.len() {
-                        let last_max_index = if curr > maximum_value { i } else { maximum_index };
+                        let last_max_index = if curr > maximum_value {
+                            i
+                        } else {
+                            maximum_index
+                        };
                         self.key_maxima[self.key_max_count].set(&nsdf, last_max_index);
                         self.key_max_count += 1
                     }
@@ -284,7 +291,8 @@ impl PitchDetectionResult {
         // Step 3: Select the final maximum
         let k: f32 = 0.9;
         let threshold = k * largest_key_maximum;
-        for (key_max_index, key_max) in self.key_maxima.iter().take(self.key_max_count).enumerate() {
+        for (key_max_index, key_max) in self.key_maxima.iter().take(self.key_max_count).enumerate()
+        {
             if key_max.value >= threshold {
                 self.selected_key_max_index = key_max_index;
                 break;
@@ -329,7 +337,11 @@ impl PitchDetectionResult {
         // Compute the NSDF as 2 * r' / m'
         for i in 0..nsdf.len() {
             let denominator = nsdf[i];
-            nsdf[i] = if denominator.abs() <= f32::EPSILON { 0.0 } else { 2.0 * r_prime[i].re / denominator };
+            nsdf[i] = if denominator.abs() <= f32::EPSILON {
+                0.0
+            } else {
+                2.0 * r_prime[i].re / denominator
+            };
         }
     }
 }
@@ -337,8 +349,8 @@ impl PitchDetectionResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand_seeder;
     use rand_pcg::Pcg64;
+    use rand_seeder;
 
     /// Computes the autocorrelation as a naive inefficient summation.
     /// Only used for testing purposes.
@@ -390,7 +402,7 @@ mod tests {
     fn test_midi_note_conversion() {
         // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
 
-        let note_number_a0= 21.0_f32;
+        let note_number_a0 = 21.0_f32;
         let f_a0 = 27.5_f32;
         let computed_note_number_a0 = freq_to_midi_note(f_a0);
         assert!((computed_note_number_a0 - note_number_a0).abs() <= f32::EPSILON);
@@ -433,7 +445,10 @@ mod tests {
 
             result.compute(sample_rate);
 
-            assert!((f - result.frequency).abs() <= 0.001, "Wrong detected frequency");
+            assert!(
+                (f - result.frequency).abs() <= 0.001,
+                "Wrong detected frequency"
+            );
             // We should have one actual maximum and one maximum at the last NSDF sample
             assert_eq!(result.key_max_count, 2, "Unexpected key max count");
 
@@ -443,8 +458,14 @@ mod tests {
             let last_max_lag_index = last_max.lag_index;
             let last_max_value = last_max.value;
             let last_max_value_at_lag_index = last_max.value;
-            assert!((last_max_lag - (last_max_lag_index as f32)).abs() < 1., "Unreasonable interpolated key max lag");
-            assert!((last_max_value - last_max_value_at_lag_index).abs() < 0.001, "Unreasonable interpolated key max value");
+            assert!(
+                (last_max_lag - (last_max_lag_index as f32)).abs() < 1.,
+                "Unreasonable interpolated key max lag"
+            );
+            assert!(
+                (last_max_value - last_max_value_at_lag_index).abs() < 0.001,
+                "Unreasonable interpolated key max value"
+            );
         }
     }
 
