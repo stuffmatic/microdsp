@@ -9,7 +9,7 @@ class IndicatorDot {
 
 class PianoCanvas extends CanvasBase {
   numberOfOctaves = 5
-  startOctave = 2
+  startOctave = 2 // lowest note is A{startOctave}
   indicatorDots = [
     new IndicatorDot(),
     new IndicatorDot()

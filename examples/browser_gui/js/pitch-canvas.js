@@ -18,7 +18,7 @@ class PitchCanvas extends CanvasBase {
     const tMax = pitchReadings[pitchReadings.length - 1].timestamp
 
     // Draw clarity, rms and note number plots
-    const noteCurveMeta = { key: "note_number", color: Palette.pitch + Palette.dimmedAlpha, min: 0, max: 127 }
+    const noteCurveMeta = { key: "note_number", color: Palette.pitch + Palette.dimmedAlpha, min: 21, max: 127 }
     if (this.drawPitchAndClarity) {
       const curveMeta = [
         { key: "clarity", color: Palette.clarity + Palette.dimmedAlpha, min: 0, max: 1 },
