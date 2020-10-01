@@ -117,7 +117,9 @@ impl PitchReadingInfo {
             Some(c) => {
                 result.clarity > 0.8 && (result.clarity - c).abs() < 0.1
             },
-            _ => false
+            None => {
+                result.selected_key_max_index == 0 && result.clarity > 0.8
+            }
         };
 
         PitchReadingInfo {
@@ -161,7 +163,7 @@ impl MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: PitchDetector::new(sample_rate, 1024, 512, false),
+            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256, false),
             to_main_thread,
             from_main_thread,
         }
@@ -243,6 +245,7 @@ fn main() {
     let poll_interval_ms = 30;
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
     println!("Open index.html in a web browser");
+
     loop {
         thread::sleep(Duration::from_millis(poll_interval_ms));
 
