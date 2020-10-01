@@ -6,6 +6,12 @@ fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
     }
 }
 
+fn freq_to_midi_note(f: f32) -> f32 {
+    // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
+    // MIDI note 21 is A0 at 27.5 Hz
+    21.0_f32 + (f / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10()
+}
+
 /// Computes m' defined in eq (6), using the incremental subtraction
 /// algorithm described in section 6 - Efficient calculation of SDF.
 fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32]) {
@@ -323,7 +329,7 @@ impl PitchDetectionResult {
 
             let pitch_period = self.pitch_period / sample_rate;
             self.frequency = 1.0 / pitch_period;
-            self.note_number = (self.frequency / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10();
+            self.note_number = freq_to_midi_note(self.frequency);
         }
     }
 
@@ -397,6 +403,21 @@ mod tests {
             }
             result[tau] = sum;
         }
+    }
+
+    #[test]
+    fn test_midi_note_conversion() {
+        // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
+
+        let note_number_a0= 21.0_f32;
+        let f_a0 = 27.5_f32;
+        let computed_note_number_a0 = freq_to_midi_note(f_a0);
+        assert!((computed_note_number_a0 - note_number_a0).abs() <= f32::EPSILON);
+
+        let note_number_a4 = 69.0_f32;
+        let f_a4 = 440.0_f32;
+        let computed_note_number_a4 = freq_to_midi_note(f_a4);
+        assert!((computed_note_number_a4 - note_number_a4).abs() <= 0.0001);
     }
 
     #[test]
