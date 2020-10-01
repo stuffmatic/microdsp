@@ -13,6 +13,7 @@ pub fn run_processor<S, T: AudioProcessor<S> + 'static>(
   let default_input = pa.default_input_device().unwrap();
   let default_output = pa.default_output_device().unwrap();
   let input_info = pa.device_info(default_input).unwrap();
+  println!("Using audio input device \"{}\"", input_info.name);
 
   let latency = input_info.default_low_input_latency;
   let input_params = pa::StreamParameters::<f32>::new(default_input, 1, true, latency);

@@ -76,6 +76,7 @@ struct PitchReadingInfo {
     note_number: f32,
     window_rms: f32,
     window_peak: f32,
+    is_tone: bool,
     #[serde(serialize_with = "<[_]>::serialize")]
     nsdf: [f32; MAX_NSDF_SIZE],
     lag_count: usize,
@@ -112,12 +113,20 @@ impl PitchReadingInfo {
             }
         };
 
+        let is_tone = match result.clarity_at_double_period {
+            Some(c) => {
+                result.clarity > 0.8 && (result.clarity - c).abs() < 0.1
+            },
+            _ => false
+        };
+
         PitchReadingInfo {
             timestamp,
             window_size: result.window.len(),
             frequency: result.frequency,
             clarity: result.clarity,
             clarity_at_double_period: result.clarity_at_double_period,
+            is_tone,
             note_number: result.note_number,
             window_rms: result.window_rms(),
             window_peak: result.window_peak(),
@@ -203,7 +212,7 @@ fn main() {
     // The websocket server address
     let addr = env::args()
         .nth(1)
-        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+        .unwrap_or_else(|| "127.0.0.1:9876".to_string());
 
     // Create a websocket
     let socket = WebSocket::new(move |_| WebSocketHandler {
@@ -233,6 +242,7 @@ fn main() {
 
     let poll_interval_ms = 30;
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
+    println!("Open index.html in a web browser");
     loop {
         thread::sleep(Duration::from_millis(poll_interval_ms));
 
