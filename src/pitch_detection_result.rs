@@ -228,13 +228,15 @@ impl PitchDetectionResult {
     fn perform_peak_picking(&mut self) {
         let nsdf = &mut self.nsdf[..];
 
-        // Perform peak picking. First, gather key maxima
+        // Perform peak picking.
+        // Step 1: gather key maxima.
         self.key_max_count = 0;
         let mut is_detecting = false;
         let mut maximum_value: f32 = 0.0;
         let mut maximum_index: usize = 0;
         let mut prev = nsdf[0];
         for i in 1..nsdf.len() {
+            let is_last_lag = i == nsdf.len() - 1;
             let curr = nsdf[i];
             if prev <= 0.0 && curr > 0.0 {
                 // positive zero crossing, going from - to +.
@@ -242,9 +244,9 @@ impl PitchDetectionResult {
                 is_detecting = true;
                 maximum_value = curr;
                 maximum_index = i;
-            } else if prev >= 0.0 && curr < 0.0 || i == nsdf.len() - 1 {
-                // We reached either a negative zero crossing (going from + to -) or
-                // the end of the nsdf. Stop looking for a key maximum and store the one we've got
+            } else if prev >= 0.0 && curr < 0.0 {
+                // We reached a negative zero crossing (going from + to -) or the last lag.
+                // Stop looking for a key maximum and store the one we've got
                 // (unless we have collected the maximum number of key maxima)
                 if is_detecting && self.key_max_count < self.key_maxima.len() {
                     self.key_maxima[self.key_max_count].set(&nsdf, maximum_index);
@@ -253,17 +255,26 @@ impl PitchDetectionResult {
                 is_detecting = false;
             }
 
-            if is_detecting && curr > maximum_value {
-                // If we're looking for a key maximum and the current
-                // value is greater than the current max, set a new max.
-                maximum_value = curr;
-                maximum_index = i;
+            if is_detecting {
+                if is_last_lag {
+                    // Reached the last lag while looking for a new max.
+                    if self.key_max_count < self.key_maxima.len() {
+                        let last_max_index = if curr > maximum_value { i } else { maximum_index };
+                        self.key_maxima[self.key_max_count].set(&nsdf, last_max_index);
+                        self.key_max_count += 1
+                    }
+                } else if curr > maximum_value {
+                    // If we're looking for a key maximum and the current
+                    // value is greater than the current max, set a new max.
+                    maximum_value = curr;
+                    maximum_index = i;
+                }
             }
 
             prev = curr;
         }
 
-        // Then select the final maximum
+        // Step 2: Find the largest key maximum
         let mut largest_key_maximum: f32 = 0.0;
         for (i, key_max) in self.key_maxima.iter().enumerate() {
             let value = key_max.value_at_lag_index;
@@ -272,8 +283,8 @@ impl PitchDetectionResult {
             }
         }
 
+        // Step 3: Select the final maximum
         let k: f32 = 0.9;
-
         let threshold = k * largest_key_maximum;
         for (key_max_index, key_max) in self.key_maxima.iter().take(self.key_max_count).enumerate() {
             if key_max.value >= threshold {
@@ -399,10 +410,46 @@ mod tests {
         assert_eq!(result.key_max_count, 0);
     }
 
+    #[test]
+    fn test_low_sine() {
+        // Tests the case when the expected pitch period > 0.5 * lag_count and < lag_count
+        for f in [154.0_f32, 190.0_f32].iter() {
+            let window_size = 1024;
+            let lag_count = window_size / 2;
+            let sample_rate: f32 = 44100.0;
+            let expected_pitch_period = sample_rate / f;
+
+            // Verify pre-condition
+            assert!(expected_pitch_period < (lag_count as f32));
+
+            // Generate a pure tone and perform pitch detection
+            let mut result = PitchDetectionResult::new(window_size, lag_count);
+            for i in 0..window_size {
+                let sine_value = (2.0 * std::f32::consts::PI * f * (i as f32) / sample_rate).sin();
+                result.window[i] = sine_value;
+            }
+
+            result.compute(sample_rate);
+
+            assert!((f - result.frequency).abs() <= 0.001, "Wrong detected frequency");
+            // We should have one actual maximum and one maximum at the last NSDF sample
+            assert_eq!(result.key_max_count, 2, "Unexpected key max count");
+
+            // The value of the last key max should be reasonable
+            let last_max = result.key_maxima[result.key_max_count - 1];
+            let last_max_lag = last_max.lag;
+            let last_max_lag_index = last_max.lag_index;
+            let last_max_value = last_max.value;
+            let last_max_value_at_lag_index = last_max.value;
+            assert!((last_max_lag - (last_max_lag_index as f32)).abs() < 1., "Unreasonable interpolated key max lag");
+            assert!((last_max_value - last_max_value_at_lag_index).abs() < 0.001, "Unreasonable interpolated key max value");
+        }
+    }
+
     /*#[test]
     fn test_noise() {
         // TODO: fix this
-        let rng: Pcg64 = rand_seeder::Seeder::from("stripy zebra").make_rng();
+        let rng: Pcg64 = rand_seeder::Seeder::from("hello seed").make_rng();
 
         let sample_rate = 44100.0;
         let window_size = 1024;
