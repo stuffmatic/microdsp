@@ -288,11 +288,12 @@ fn main() {
 
     let ws_server = ws_server::start_ws_server();
 
+    // TODO: pass interval as optional argument
     let poll_interval_ms = 30;
+    let mut received_pitch_readings: Vec<PitchReadingInfo> = Vec::new();
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
     println!("Open index.html in a web browser");
 
-    let mut loop_count: usize = 0;
     loop {
         thread::sleep(Duration::from_millis(poll_interval_ms));
 
@@ -307,7 +308,8 @@ fn main() {
             }
         }
 
-        // Get incoming messages from the audio thread
+        // Get incoming messages from the audio thread.
+        received_pitch_readings.clear();
         loop {
             match from_audio_thread.pop() {
                 Err(reason) => {
@@ -316,21 +318,27 @@ fn main() {
                 }
                 Ok(message) => match message {
                     MPMAudioProcessorMessage::DetectedPitch { info } => {
-                        if loop_count % 2 == 0 {
-                            let st = serde_json::to_string_pretty(&info).unwrap();
-                            let _ = ws_server.tx_send.send(st);
-                        }
-                        // println!("DetectedPitch: t={}s: {} Hz, clarity {}, RMS {} dB", timestamp, frequency, clarity, window_rms_db)
+                        received_pitch_readings.push(info);
                     }
                 },
             }
         }
-
-        loop_count += 1
+        // Send the most recent pitch reading in case more than one was received
+        match received_pitch_readings.last() {
+            Some(info) => {
+                let st = serde_json::to_string_pretty(&info).unwrap();
+                let _ = ws_server.tx_send.send(st);
+            }
+            None => {}
+        }
     }
 
-    ws_server.socket_join_handle.join().expect("Websocket thread failed");
-    ws_server.broadcaster_join_handle
+    ws_server
+        .socket_join_handle
+        .join()
+        .expect("Websocket thread failed");
+    ws_server
+        .broadcaster_join_handle
         .join()
         .expect("Broadcaster thread failed");
 }

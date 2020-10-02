@@ -39,7 +39,7 @@ pub struct WebsocketServer {
 }
 
 pub fn start_ws_server() -> WebsocketServer {
-    let addr = "127.0.0.1:9876".to_string();
+    let addr = "127.0.0.1:9876";
 
     // A channel for pushing data from the main thread to the websocket for sending
     let (tx_send, rx_send) = unbounded::<MessageType>();
@@ -54,7 +54,6 @@ pub fn start_ws_server() -> WebsocketServer {
 
     // For sending messages to all connected clients
     let broadcaster = socket.broadcaster();
-
     // Spawn a thread for receiving and broadcasting messages to all connected clients
     let broadcaster_join_handle = thread::spawn(move || loop {
         if let Ok(x) = rx_send.recv() {
@@ -71,6 +70,7 @@ pub fn start_ws_server() -> WebsocketServer {
     let socket_join_handle = thread::spawn(move || {
         socket.listen(addr).expect("Unable to listen on websocket");
     });
+    println!("Websocket server listening on {}", addr);
 
     WebsocketServer {
       socket_join_handle,
