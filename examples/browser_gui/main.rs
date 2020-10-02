@@ -1,10 +1,8 @@
-use crossbeam_channel::unbounded;
-use std::env;
 use std::thread;
 use std::time::Duration;
-use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};
 
 mod audio;
+mod ws_server;
 use crossbeam_queue::spsc;
 use mpm_pitch::KeyMaximum;
 use mpm_pitch::PitchDetectionResult;
@@ -12,12 +10,6 @@ use mpm_pitch::PitchDetector;
 use mpm_pitch::ProcessingResult;
 use serde::Serialize;
 use serde_json;
-
-type MessageType = String;
-
-struct WebSocketHandler {
-    tx: crossbeam_channel::Sender<MessageType>,
-}
 
 trait ToneClassification {
     fn key_max_spread(&self) -> Option<f32>;
@@ -29,7 +21,7 @@ impl ToneClassification for PitchDetectionResult {
     // does not use interpolated lags and values. Not ideal.
     fn clarity_at_double_period(&self) -> Option<f32> {
         if self.key_max_count == 0 {
-            return None
+            return None;
         }
 
         let selected_max = &self.key_maxima[self.selected_key_max_index];
@@ -44,7 +36,7 @@ impl ToneClassification for PitchDetectionResult {
     //
     fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum> {
         if self.key_max_count == 0 {
-            return None
+            return None;
         }
 
         let selected_max = &self.key_maxima[self.selected_key_max_index];
@@ -75,7 +67,7 @@ impl ToneClassification for PitchDetectionResult {
 
         if found_max {
             assert!(min_index > self.selected_key_max_index);
-            return Some(self.key_maxima[min_index])
+            return Some(self.key_maxima[min_index]);
         }
         None
     }
@@ -113,31 +105,6 @@ impl ToneClassification for PitchDetectionResult {
         }
 
         return Some(min_distance / max_distance);
-    }
-}
-
-// https://www.jan-prochazka.eu/ws-rs/guide.html
-// https://github.com/housleyjk/ws-rs/issues/131
-
-impl Handler for WebSocketHandler {
-    fn on_message(&mut self, msg: Message) -> Result<()> {
-        println!("Incoming ws message '{}'. ", msg);
-        match self.tx.send(msg.to_string()) {
-            Ok(_) => println!("Relayed ws message"),
-            Err(e) => println!("Failed to relay ws message {}", e),
-        }
-        Ok(())
-    }
-
-    fn on_close(&mut self, code: CloseCode, reason: &str) {
-        println!("WebSocket closing for ({:?}) {}", code, reason);
-    }
-
-    fn on_open(&mut self, shake: Handshake) -> Result<()> {
-        if let Some(addr) = shake.remote_addr()? {
-            println!("Connection with {} now open", addr);
-        }
-        Ok(())
     }
 }
 
@@ -219,10 +186,8 @@ impl PitchReadingInfo {
                 let rel_lag_difference = delta_lag.abs() / max.lag;
                 // println!("rel_lag_difference {}, delta_value {}", rel_lag_difference, delta_value);
                 result.clarity > 0.8 && rel_lag_difference > 0.9 && delta_value.abs() < 0.1
-            },
-            None => {
-                result.clarity > 0.8
             }
+            None => result.clarity > 0.8,
         };
         /*let is_tone = match result.clarity_at_double_period() {
             Some(c) => {
@@ -321,41 +286,7 @@ fn main() {
     println!("Starting audio thread");
     let stream = audio::run_processor(processor);
 
-    // A channel for pushing data from the main thread to the websocket for sending
-    let (tx_send, rx_send) = unbounded::<MessageType>();
-    // A channel for pushing incoming data from the websocket to the main thread
-    let (tx_recv, rx_recv) = unbounded::<MessageType>();
-
-    // The websocket server address
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "127.0.0.1:9876".to_string());
-
-    // Create a websocket
-    let socket = WebSocket::new(move |_| WebSocketHandler {
-        tx: tx_recv.clone(),
-    })
-    .unwrap();
-
-    // For sending messages to all connected clients
-    let broadcaster = socket.broadcaster();
-
-    // Spawn a thread for receiving and broadcasting messages to all connected clients
-    let broadcaster_join_handle = thread::spawn(move || loop {
-        if let Ok(x) = rx_send.recv() {
-            broadcaster
-                .send(x)
-                .expect("Unable to send WebSocket message.")
-        } else {
-            println!("Shutting down broadcaster thread.");
-            break;
-        }
-    });
-
-    // Spawn a thread for accepting websocket connections
-    let socket_join_handle = thread::spawn(move || {
-        socket.listen(addr).expect("Unable to listen on websocket");
-    });
+    let ws_server = ws_server::start_ws_server();
 
     let poll_interval_ms = 30;
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
@@ -367,7 +298,7 @@ fn main() {
 
         // Get incoming websocket messages
         loop {
-            match rx_recv.try_recv() {
+            match ws_server.rx_recv.try_recv() {
                 Ok(value) => println!("Received websocket message on main thread {}", value),
                 Err(error) => {
                     // println!("Failed to received value {}", error);
@@ -387,7 +318,7 @@ fn main() {
                     MPMAudioProcessorMessage::DetectedPitch { info } => {
                         if loop_count % 2 == 0 {
                             let st = serde_json::to_string_pretty(&info).unwrap();
-                            let _ = tx_send.send(st);
+                            let _ = ws_server.tx_send.send(st);
                         }
                         // println!("DetectedPitch: t={}s: {} Hz, clarity {}, RMS {} dB", timestamp, frequency, clarity, window_rms_db)
                     }
@@ -398,8 +329,8 @@ fn main() {
         loop_count += 1
     }
 
-    socket_join_handle.join().expect("Websocket thread failed");
-    broadcaster_join_handle
+    ws_server.socket_join_handle.join().expect("Websocket thread failed");
+    ws_server.broadcaster_join_handle
         .join()
         .expect("Broadcaster thread failed");
 }
