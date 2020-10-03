@@ -1,4 +1,3 @@
-use std::env;
 use std::thread;
 use crossbeam_channel::unbounded;
 use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};

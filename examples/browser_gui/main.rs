@@ -227,8 +227,8 @@ enum MPMAudioProcessorMessage {
 }
 
 struct MPMAudioProcessor {
-    to_main_thread: spsc::Producer<MPMAudioProcessorMessage>,
-    from_main_thread: spsc::Consumer<MPMAudioProcessorMessage>,
+    // to_main_thread: spsc::Producer<MPMAudioProcessorMessage>,
+    // from_main_thread: spsc::Consumer<MPMAudioProcessorMessage>,
     processed_sample_count: usize,
     sample_rate: f32,
     pitch_detector: PitchDetector,
@@ -237,21 +237,22 @@ struct MPMAudioProcessor {
 impl MPMAudioProcessor {
     fn new(
         sample_rate: f32,
-        to_main_thread: spsc::Producer<MPMAudioProcessorMessage>,
-        from_main_thread: spsc::Consumer<MPMAudioProcessorMessage>,
+        // to_main_thread: spsc::Producer<MPMAudioProcessorMessage>,
+        // from_main_thread: spsc::Consumer<MPMAudioProcessorMessage>,
     ) -> MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
             pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256, false),
-            to_main_thread,
-            from_main_thread,
+            // to_main_thread,
+            // from_main_thread,
         }
     }
 }
 
 impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
-    fn process(&mut self, in_buffer: &[f32], out_buffer: &mut [f32], frame_count: usize) -> bool {
+    fn process(&mut self, in_buffer: &[f32], out_buffer: &mut [f32], frame_count: usize, to_main_thread: &spsc::Producer<MPMAudioProcessorMessage>,
+        from_main_thread: &spsc::Consumer<MPMAudioProcessorMessage>) -> bool {
         let mut sample_offset: usize = 0;
         while sample_offset < in_buffer.len() {
             match self.pitch_detector.process(&in_buffer[..], sample_offset) {
@@ -263,7 +264,7 @@ impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
                     let message = MPMAudioProcessorMessage::DetectedPitch {
                         info: PitchReadingInfo::new(timestamp, result),
                     };
-                    let push_result = self.to_main_thread.push(message);
+                    let push_result = to_main_thread.push(message);
                     sample_offset = sample_index;
                 }
                 _ => {
@@ -280,11 +281,9 @@ impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
 fn main() {
     let sample_rate = 44100.0;
     let queue_capacity = 1000;
-    let (to_audio_thread, from_main_thread) = spsc::new::<MPMAudioProcessorMessage>(queue_capacity);
-    let (to_main_thread, from_audio_thread) = spsc::new::<MPMAudioProcessorMessage>(queue_capacity);
-    let processor = MPMAudioProcessor::new(sample_rate, to_main_thread, from_main_thread);
+    let mut processor = MPMAudioProcessor::new(sample_rate);
     println!("Starting audio thread");
-    let stream = audio::run_processor(processor);
+    let audio_engine = audio::AudioEngine::new(44100.0, processor);
 
     let ws_server = ws_server::start_ws_server();
 
@@ -311,7 +310,7 @@ fn main() {
         // Get incoming messages from the audio thread.
         received_pitch_readings.clear();
         loop {
-            match from_audio_thread.pop() {
+            match audio_engine.from_audio_thread.pop() {
                 Err(reason) => {
                     // println!("Failed to pop {} on audio thread", reason);
                     break;
