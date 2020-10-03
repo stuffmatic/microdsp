@@ -1,5 +1,5 @@
-use std::thread;
 use crossbeam_channel::unbounded;
+use std::thread;
 use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};
 
 type MessageType = String;
@@ -31,15 +31,13 @@ impl Handler for WebSocketHandler {
 }
 
 pub struct WebsocketServer {
-  pub tx_send: crossbeam_channel::Sender<MessageType>,
-  pub rx_recv: crossbeam_channel::Receiver<MessageType>,
-  pub broadcaster_join_handle: std::thread::JoinHandle<()>,
-  pub socket_join_handle: std::thread::JoinHandle<()>
+    pub tx_send: crossbeam_channel::Sender<MessageType>,
+    pub rx_recv: crossbeam_channel::Receiver<MessageType>,
+    pub broadcaster_join_handle: std::thread::JoinHandle<()>,
+    pub socket_join_handle: std::thread::JoinHandle<()>,
 }
 
-pub fn start_ws_server() -> WebsocketServer {
-    let addr = "127.0.0.1:9876";
-
+pub fn start_ws_server(addr: String) -> WebsocketServer {
     // A channel for pushing data from the main thread to the websocket for sending
     let (tx_send, rx_send) = unbounded::<MessageType>();
     // A channel for pushing incoming data from the websocket to the main thread
@@ -66,15 +64,15 @@ pub fn start_ws_server() -> WebsocketServer {
     });
 
     // Spawn a thread for accepting websocket connections
+    println!("Websocket server listening on {}", addr);
     let socket_join_handle = thread::spawn(move || {
         socket.listen(addr).expect("Unable to listen on websocket");
     });
-    println!("Websocket server listening on {}", addr);
 
     WebsocketServer {
-      socket_join_handle,
-      broadcaster_join_handle,
-      tx_send,
-      rx_recv
+        socket_join_handle,
+        broadcaster_join_handle,
+        tx_send,
+        rx_recv,
     }
 }

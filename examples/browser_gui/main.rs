@@ -227,8 +227,6 @@ enum MPMAudioProcessorMessage {
 }
 
 struct MPMAudioProcessor {
-    // to_main_thread: spsc::Producer<MPMAudioProcessorMessage>,
-    // from_main_thread: spsc::Consumer<MPMAudioProcessorMessage>,
     processed_sample_count: usize,
     sample_rate: f32,
     pitch_detector: PitchDetector,
@@ -236,23 +234,25 @@ struct MPMAudioProcessor {
 
 impl MPMAudioProcessor {
     fn new(
-        sample_rate: f32,
-        // to_main_thread: spsc::Producer<MPMAudioProcessorMessage>,
-        // from_main_thread: spsc::Consumer<MPMAudioProcessorMessage>,
+        sample_rate: f32
     ) -> MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256, false),
-            // to_main_thread,
-            // from_main_thread,
+            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256, false)
         }
     }
 }
 
 impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
-    fn process(&mut self, in_buffer: &[f32], out_buffer: &mut [f32], frame_count: usize, to_main_thread: &spsc::Producer<MPMAudioProcessorMessage>,
-        from_main_thread: &spsc::Consumer<MPMAudioProcessorMessage>) -> bool {
+    fn process(
+        &mut self,
+        in_buffer: &[f32],
+        out_buffer: &mut [f32],
+        frame_count: usize,
+        to_main_thread: &spsc::Producer<MPMAudioProcessorMessage>,
+        from_main_thread: &spsc::Consumer<MPMAudioProcessorMessage>,
+    ) -> bool {
         let mut sample_offset: usize = 0;
         while sample_offset < in_buffer.len() {
             match self.pitch_detector.process(&in_buffer[..], sample_offset) {
@@ -279,15 +279,16 @@ impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
 }
 
 fn main() {
+    // Create an instance of an audio processor that does pitch detection on input samples
     let sample_rate = 44100.0;
-    let queue_capacity = 1000;
-    let mut processor = MPMAudioProcessor::new(sample_rate);
-    println!("Starting audio thread");
-    let audio_engine = audio::AudioEngine::new(44100.0, processor);
+    let processor = MPMAudioProcessor::new(sample_rate);
+    // Create an audio engine that provides the processor with real time input samples
+    let audio_engine = audio::AudioEngine::new(sample_rate, processor);
+    println!("Started audio engine");
 
-    let ws_server = ws_server::start_ws_server();
+    // Create a websocket server for sending pitch measurements to connected clients
+    let ws_server = ws_server::start_ws_server("127.0.0.1:9876".to_string());
 
-    // TODO: pass interval as optional argument
     let poll_interval_ms = 30;
     let mut received_pitch_readings: Vec<PitchReadingInfo> = Vec::new();
     println!("Entering event loop, polling every {} ms", poll_interval_ms);

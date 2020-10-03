@@ -1,6 +1,6 @@
 extern crate portaudio;
-use portaudio as pa;
 use crossbeam_queue::spsc;
+use portaudio as pa;
 
 pub trait AudioProcessor<S> {
     /// Return false to stop the audio stream, true otherwise.
@@ -10,18 +10,24 @@ pub trait AudioProcessor<S> {
         out_buffer: &mut [f32],
         frame_count: usize,
         to_main_thread: &spsc::Producer<S>,
-        from_main_thread: &spsc::Consumer<S>
+        from_main_thread: &spsc::Consumer<S>,
     ) -> bool;
 }
 
 pub struct AudioEngine<S> {
     pa_stream: pa::Stream<pa::NonBlocking, pa::Duplex<f32, f32>>,
     pub to_audio_thread: spsc::Producer<S>,
-    pub from_audio_thread: spsc::Consumer<S>
+    pub from_audio_thread: spsc::Consumer<S>,
 }
 
-impl<S> AudioEngine<S> where S: 'static {
-    pub fn new<T: AudioProcessor<S> + 'static>(sample_rate: f64, mut processor: T) -> AudioEngine<S> {
+impl<S> AudioEngine<S>
+where
+    S: 'static,
+{
+    pub fn new<T: AudioProcessor<S> + 'static>(
+        sample_rate: f32,
+        mut processor: T,
+    ) -> AudioEngine<S> {
         let queue_capacity = 1000;
         let (to_audio_thread, from_main_thread) = spsc::new::<S>(queue_capacity);
         let (to_main_thread, from_audio_thread) = spsc::new::<S>(queue_capacity);
@@ -34,7 +40,7 @@ impl<S> AudioEngine<S> where S: 'static {
         let latency = input_info.default_low_input_latency;
         let input_params = pa::StreamParameters::<f32>::new(default_input, 1, true, latency);
         let output_params = pa::StreamParameters::new(default_output, 1, true, latency);
-        let settings = pa::DuplexStreamSettings::new(input_params, output_params, sample_rate, 256);
+        let settings = pa::DuplexStreamSettings::new(input_params, output_params, sample_rate as f64, 256);
 
         let pa_callback = move |pa::DuplexStreamCallbackArgs {
                                     in_buffer,
@@ -43,8 +49,13 @@ impl<S> AudioEngine<S> where S: 'static {
                                     time,
                                     ..
                                 }| {
-
-            match processor.process(in_buffer, out_buffer, frames, &to_main_thread, &from_main_thread) {
+            match processor.process(
+                in_buffer,
+                out_buffer,
+                frames,
+                &to_main_thread,
+                &from_main_thread,
+            ) {
                 true => pa::Continue,
                 false => pa::Complete,
             }
@@ -54,7 +65,7 @@ impl<S> AudioEngine<S> where S: 'static {
         AudioEngine {
             pa_stream: stream,
             to_audio_thread,
-            from_audio_thread
+            from_audio_thread,
         }
     }
 

@@ -76,8 +76,8 @@
 //! println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //! ```
 
-mod key_maximum;
 mod equal_loudness_filter;
+mod key_maximum;
 mod pitch_detection_result;
 mod pitch_detector;
 
