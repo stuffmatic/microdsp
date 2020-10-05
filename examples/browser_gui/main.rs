@@ -9,6 +9,7 @@ use crossbeam_queue::spsc;
 use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 use dev_helpers::WebsocketServer;
+use dev_helpers::note_number_to_string;
 
 use mpm_pitch::KeyMaximum;
 use mpm_pitch::PitchDetectionResult;
@@ -48,6 +49,7 @@ struct PitchReadingInfo {
     window_rms: f32,
     window_peak: f32,
     is_tone: bool,
+    note_info: Option<String>,
     #[serde(serialize_with = "<[_]>::serialize")]
     nsdf: [f32; MAX_NSDF_SIZE],
     lag_count: usize,
@@ -101,6 +103,7 @@ impl PitchReadingInfo {
             key_maxima_count: result.key_max_count,
             key_maxima: result.key_maxima,
             key_maxima_ser,
+            note_info: if is_tone { Some(note_number_to_string(result.note_number)) } else { None }
         }
     }
 }

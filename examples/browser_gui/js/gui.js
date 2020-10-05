@@ -11,6 +11,7 @@ class GUI {
     this.nsdfCanvas = new NSDFCanvas("nsdf-canvas")
     this.pianoCanvas = new PianoCanvas("piano-canvas")
     this.connectionInfoLabel = document.getElementById("connection-info")
+    this.noteInfo = document.getElementById("note-info")
 
     // Websocket
     this.webSocketRetryInterval = 2.0
@@ -96,6 +97,8 @@ class GUI {
       rmsLevel: newReading.window_rms,
       isTone: newReading.is_tone
     })
+
+    this.noteInfo.innerText = newReading.note_info ? newReading.note_info : "No note detected."
   }
 
   togglePaused() {
