@@ -84,6 +84,20 @@ class PianoCanvas extends CanvasBase {
       this.context.fill()
       this.context.globalAlpha = 1
     })
+
+    let nearestNoteIndicatorDot = this.indicatorDots[noteNumberInterp < 0.5 ? 0 : 1]
+    this.context.beginPath()
+    const isBlack = this.isBlackKey(this.noteNumberToInOctave(nearestNoteIndicatorDot.noteNumber))
+    const y = (isBlack ? 0.43 : 0.86) * height
+    this.context.arc(
+      this.noteNumberX(nearestNoteIndicatorDot.noteNumber),
+      y,
+      0.4 * whiteKeyWidth,
+      0,
+      2 * Math.PI
+    )
+    this.context.stroke()
+
   }
 
   get lowestNote() {
