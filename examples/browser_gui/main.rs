@@ -185,7 +185,7 @@ impl PitchReadingInfo {
                 let delta_value = next_max.value - max.value;
                 let rel_lag_difference = delta_lag.abs() / max.lag;
                 // println!("rel_lag_difference {}, delta_value {}", rel_lag_difference, delta_value);
-                result.clarity > 0.8 && rel_lag_difference > 0.9 && delta_value.abs() < 0.1
+                result.clarity > 0.9 && rel_lag_difference > 0.9 && delta_value.abs() < 0.05
             }
             None => result.clarity > 0.8,
         };
