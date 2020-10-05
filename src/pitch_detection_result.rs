@@ -224,6 +224,73 @@ impl PitchDetectionResult {
         self.key_max_count > 0
     }
 
+    pub fn is_tone(&self, clarity_threshold: f32, clarity_tolerance: f32, period_tolerance: f32) -> bool {
+        if !self.is_valid() {
+            // No key maxima, can't be a tone
+            return false
+        }
+
+        let is_tone = match self.key_max_closest_to_double_period() {
+            Some(next_max) => {
+                let max = self.key_maxima[self.selected_key_max_index];
+
+                // Does the closest max meet the period tolerance, i.e was the key max closest
+                // to the double period found at a lag sufficiently close to the double period?
+                let delta_lag = next_max.lag - max.lag;
+                let rel_lag_error = (delta_lag - max.lag).abs() / max.lag;
+                let meets_period_tolerance = rel_lag_error < period_tolerance;
+
+                // Does the closest max meet the clarity tolerance, i.e does the key max closest
+                // to the double period have a sufficiently high clarity?
+                let delta_clarity = next_max.value - max.value;
+                let meets_clarity_tolerance = delta_clarity > -clarity_tolerance;
+
+                // println!("rel_lag_difference {}, delta_value {}", rel_lag_difference, delta_value);
+                self.clarity > clarity_threshold && meets_period_tolerance && meets_clarity_tolerance
+            }
+            None => self.clarity > clarity_threshold
+        };
+        is_tone
+    }
+
+    fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum> {
+        if self.key_max_count == 0 {
+            return None;
+        }
+
+        let selected_max = &self.key_maxima[self.selected_key_max_index];
+        let lag_of_next_expected_max = 2.0 * selected_max.lag;
+        let mut min_distance: f32 = 0.;
+        let mut min_index: usize = 0;
+        let mut found_max = false;
+        let start_index = self.selected_key_max_index + 1;
+        for i in start_index..self.key_max_count {
+            let key_max = self.key_maxima[i];
+            if key_max.lag_index == self.nsdf.len() - 1 {
+                // Ignore the key max at the last lag, since it's
+                // probably not a proper key maximum.
+                break;
+            }
+            let distance = (key_max.lag - lag_of_next_expected_max).abs();
+            if i == start_index {
+                min_distance = distance;
+                min_index = i;
+            } else {
+                if distance < min_distance {
+                    min_distance = distance;
+                    min_index = i;
+                }
+            }
+            found_max = true;
+        }
+
+        if found_max {
+            assert!(min_index > self.selected_key_max_index);
+            return Some(self.key_maxima[min_index]);
+        }
+        None
+    }
+
     fn reset(&mut self) {
         self.frequency = 0.0;
         self.clarity = 0.0;

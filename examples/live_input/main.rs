@@ -11,17 +11,17 @@ use mpm_pitch::ProcessingResult;
 
 fn note_number_to_string(note_number: f32) -> String {
     let note_names = [
-        "A    ",
+        "    A",
         "A#/B♭",
-        "B    ",
-        "C    ",
+        "    B",
+        "    C",
         "C#/D♭",
-        "D    ",
+        "    D",
         "D#/E♭",
-        "E    ",
-        "F    ",
+        "    E",
+        "    F",
         "F#/G♭",
-        "G    ",
+        "    G",
         "G#/A♭"
     ];
     let a0_number = 21;
@@ -64,7 +64,7 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
             match self.pitch_detector.process(&in_buffer[..], sample_offset) {
                 ProcessingResult::ProcessedWindow { sample_index } => {
                     let result = &self.pitch_detector.result;
-                    if result.is_valid() {
+                    if result.is_tone(0.9, 0.1, 0.05) {
                         let push_result = to_main_thread.push(PitchReading {
                             note_number: result.note_number,
                             frequency: result.frequency

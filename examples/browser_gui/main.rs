@@ -15,103 +15,6 @@ use mpm_pitch::PitchDetectionResult;
 use mpm_pitch::PitchDetector;
 use mpm_pitch::ProcessingResult;
 
-trait ToneClassification {
-    fn key_max_spread(&self) -> Option<f32>;
-    fn clarity_at_double_period(&self) -> Option<f32>;
-    fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum>;
-}
-
-impl ToneClassification for PitchDetectionResult {
-    // does not use interpolated lags and values. Not ideal.
-    fn clarity_at_double_period(&self) -> Option<f32> {
-        if self.key_max_count == 0 {
-            return None;
-        }
-
-        let selected_max = &self.key_maxima[self.selected_key_max_index];
-        let lag_index_of_next_expected_max = 2 * selected_max.lag_index;
-        if lag_index_of_next_expected_max < self.nsdf.len() {
-            return Some(self.nsdf[lag_index_of_next_expected_max]);
-        }
-
-        None
-    }
-
-    //
-    fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum> {
-        if self.key_max_count == 0 {
-            return None;
-        }
-
-        let selected_max = &self.key_maxima[self.selected_key_max_index];
-        let lag_of_next_expected_max = 2.0 * selected_max.lag;
-        let mut min_distance: f32 = 0.;
-        let mut min_index: usize = 0;
-        let mut found_max = false;
-        let start_index = self.selected_key_max_index + 1;
-        for i in start_index..self.key_max_count {
-            let key_max = self.key_maxima[i];
-            if key_max.lag_index == self.nsdf.len() - 1 {
-                // Ignore the key max at the last lag, since it's
-                // probably not a proper key maximum.
-                break;
-            }
-            let distance = (key_max.lag - lag_of_next_expected_max).abs();
-            if i == start_index {
-                min_distance = distance;
-                min_index = i;
-            } else {
-                if distance < min_distance {
-                    min_distance = distance;
-                    min_index = i;
-                }
-            }
-            found_max = true;
-        }
-
-        if found_max {
-            assert!(min_index > self.selected_key_max_index);
-            return Some(self.key_maxima[min_index]);
-        }
-        None
-    }
-
-    // Works well for tones with less overtones. Probably not a general solution
-    fn key_max_spread(&self) -> Option<f32> {
-        if self.key_max_count == 0 {
-            return None;
-        }
-
-        let mut prev_lag: f32 = 0.;
-        let mut min_distance = 0.0_f32;
-        let mut max_distance = 0.0_f32;
-        for i in 0..self.key_max_count {
-            let key_max = self.key_maxima[i];
-            if key_max.lag_index == self.nsdf.len() - 1 {
-                // ignore last NSDF sample, since it's probably not a real maximum
-                break;
-            }
-            let lag = key_max.lag;
-            let distance = lag - prev_lag;
-            if i == 0 {
-                min_distance = distance;
-                max_distance = distance;
-            } else {
-                if distance > max_distance {
-                    max_distance = distance
-                }
-                if distance < min_distance {
-                    min_distance = distance
-                }
-            }
-
-            prev_lag = lag;
-        }
-
-        return Some(min_distance / max_distance);
-    }
-}
-
 const MAX_NSDF_SIZE: usize = 1024;
 
 #[derive(Copy, Clone, Serialize)]
@@ -141,7 +44,6 @@ struct PitchReadingInfo {
     timestamp: f32,
     frequency: f32,
     clarity: f32,
-    key_max_spread: Option<f32>,
     note_number: f32,
     window_rms: f32,
     window_peak: f32,
@@ -182,36 +84,13 @@ impl PitchReadingInfo {
             }
         }
 
-        let is_tone = match result.key_max_closest_to_double_period() {
-            Some(next_max) => {
-                let max = result.key_maxima[result.selected_key_max_index];
-                let delta_lag = next_max.lag - max.lag;
-                let delta_value = next_max.value - max.value;
-                let rel_lag_difference = delta_lag.abs() / max.lag;
-                // println!("rel_lag_difference {}, delta_value {}", rel_lag_difference, delta_value);
-                result.clarity > 0.9 && rel_lag_difference > 0.9 && delta_value.abs() < 0.05
-            }
-            None => result.clarity > 0.8,
-        };
-        /*let is_tone = match result.clarity_at_double_period() {
-            Some(c) => {
-                result.clarity > 0.8 && (result.clarity - c).abs() < 0.1
-            },
-            None => {
-                result.selected_key_max_index == 0 && result.clarity > 0.8
-            }
-        };*/
-        /*let is_tone = match result.key_max_spread() {
-            Some(c) => result.clarity > 0.8 && c.abs() > 0.9,
-            None => false,
-        };*/
+        let is_tone = result.is_tone(0.9, 0.1, 0.05);
 
         PitchReadingInfo {
             timestamp,
             window_size: result.window.len(),
             frequency: result.frequency,
             clarity: result.clarity,
-            key_max_spread: result.key_max_spread(),
             is_tone,
             note_number: result.note_number,
             window_rms: result.window_rms(),
