@@ -77,6 +77,8 @@ impl PitchDetector {
         &self.result
     }
 
+    // TODO: Add process_sample, consuming one sample at a time and returns an
+    // Option(&PitchDetectionResult)?
     pub fn process(&mut self, samples: &[f32], sample_offset: usize) -> ProcessingResult {
         let window_distance = self.window_size - self.window_overlap;
         for sample_index in sample_offset..samples.len() {
