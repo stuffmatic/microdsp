@@ -10,12 +10,12 @@ edition = "2018"
 criterion = "0.3"
 rand_seeder = "*"
 rand_pcg = "*"
+dev_helpers = { path = "dev_helpers" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "*"
+
+# TODO: should be hidden in dev_helpers
 crossbeam-queue = { git = "https://github.com/stjepang/crossbeam", branch = "spsc" }
-crossbeam-channel = "*"
-portaudio = "*"
-ws = "*"
 
 [[bench]]
 name = "pitch_detection_result"

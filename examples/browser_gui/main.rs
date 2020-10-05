@@ -1,15 +1,19 @@
 use std::thread;
 use std::time::Duration;
 
-mod audio;
-mod ws_server;
+use serde::Serialize;
+use serde_json;
+
 use crossbeam_queue::spsc;
+
+use dev_helpers::AudioEngine;
+use dev_helpers::AudioProcessor;
+use dev_helpers::WebsocketServer;
+
 use mpm_pitch::KeyMaximum;
 use mpm_pitch::PitchDetectionResult;
 use mpm_pitch::PitchDetector;
 use mpm_pitch::ProcessingResult;
-use serde::Serialize;
-use serde_json;
 
 trait ToneClassification {
     fn key_max_spread(&self) -> Option<f32>;
@@ -244,7 +248,7 @@ impl MPMAudioProcessor {
     }
 }
 
-impl audio::AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
+impl AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
     fn process(
         &mut self,
         in_buffer: &[f32],
@@ -283,11 +287,11 @@ fn main() {
     let sample_rate = 44100.0;
     let processor = MPMAudioProcessor::new(sample_rate);
     // Create an audio engine that provides the processor with real time input samples
-    let audio_engine = audio::AudioEngine::new(sample_rate, processor);
+    let audio_engine = AudioEngine::new(sample_rate, processor);
     println!("Started audio engine");
 
     // Create a websocket server for sending pitch measurements to connected clients
-    let ws_server = ws_server::start_ws_server("127.0.0.1:9876".to_string());
+    let ws_server = WebsocketServer::new("127.0.0.1:9876".to_string());
 
     let poll_interval_ms = 30;
     let mut received_pitch_readings: Vec<PitchReadingInfo> = Vec::new();
