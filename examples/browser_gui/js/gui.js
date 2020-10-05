@@ -1,31 +1,22 @@
 class GUI {
-  isPaused = false
-
-  // Websocket
-  webSocketRetryInterval = 2.0
-  webSocketUrl = "ws://127.0.0.1:9876"
-  webSocket = undefined
-  webSocketReconnectTimer = undefined
-
-  // HTML elements
-  pitchCanvas = undefined
-  nsdfCanvas = undefined
-  pianoCanvas = undefined
-  connectionInfoLabel = undefined
-
-  // A list of pitch readings. Old readings get thrown
-  // out as new are added
-  timeRange = 2.0
-  latestPitchReading = undefined
-  // { timestamp, noteNumber, clarity, rmsLevel, isTone }
-  frequencyPlotPoints = []
-
   constructor() {
+    this.isPaused = false
+
+    this.timeRange = 2.0
+    this.frequencyPlotPoints = []
+    this.latestPitchReading = undefined
+
     // Get HTML elements
     this.pitchCanvas = new PitchCanvas("plot-canvas")
     this.nsdfCanvas = new NSDFCanvas("nsdf-canvas")
     this.pianoCanvas = new PianoCanvas("piano-canvas")
     this.connectionInfoLabel = document.getElementById("connection-info")
+
+    // Websocket
+    this.webSocketRetryInterval = 2.0
+    this.webSocketUrl = "ws://127.0.0.1:9876"
+    this.webSocket = undefined
+    this.webSocketReconnectTimer = undefined
 
     // Hook up resize event listener
     window.addEventListener("resize", (ev) => {
@@ -110,7 +101,9 @@ class GUI {
   togglePaused() {
     this.isPaused = !this.isPaused
     if (!this.isPaused) {
+      this.latestPitchReading = undefined
       this.pitchReadings = []
+      this.frequencyPlotPoints = []
     }
     this.renderCanvases()
   }

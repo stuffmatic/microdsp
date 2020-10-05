@@ -1,16 +1,19 @@
 class PitchCanvas extends CanvasBase {
-  drawMelody = true
-  drawPitchAndClarity = true
+  constructor(canvasElementId) {
+    super(canvasElementId)
+    this.drawMelody = true
+    this.drawPitchAndClarity = true
+  }
 
   render(plotPoints, timeRange) {
     let clearColor = Palette.plotBackground
-    if (plotPoints.length > 0) {
+    if (plotPoints !== undefined && plotPoints.length > 0) {
       if (plotPoints[plotPoints.length - 1].isTone) {
         clearColor = Palette.plotBackgroundTone
       }
     }
     this.clear(clearColor)
-    if (plotPoints.length < 2) {
+    if (plotPoints === undefined || plotPoints.length < 2) {
       return
     }
 
@@ -28,7 +31,10 @@ class PitchCanvas extends CanvasBase {
       for (let i = 0; i < curveMeta.length; i++) {
         const meta = curveMeta[i]
         const yCoords = plotPoints.map((r) => this.yToScreen(r[meta.key], meta.min, meta.max))
-        const xCoords = timestamps.map((t) => this.xToScreen(t, tMax - timeRange, tMax))
+
+        const xCoords = timestamps.map((t) => {
+          return this.xToScreen(t, tMax - timeRange, tMax)
+        })
         this.drawPolyline(xCoords, yCoords, meta.color)
       }
     }
@@ -56,6 +62,7 @@ class PitchCanvas extends CanvasBase {
         const curvePart = curveParts[i];
         const xCoords = curvePart.map((r) => this.xToScreen(r.timestamp, tMax - timeRange, tMax));
         const yCoords = curvePart.map((r) => this.yToScreen(r.noteNumber, noteCurveMeta.min, noteCurveMeta.max))
+
         this.drawPolyline(
           xCoords, yCoords, Palette.pitch, 8
         );

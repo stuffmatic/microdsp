@@ -1,6 +1,4 @@
 class CanvasBase {
-  canvasElement
-  context
   constructor(canvasElementId) {
     this.canvasElement = document.getElementById(canvasElementId)
     this.context = this.canvasElement.getContext("2d")

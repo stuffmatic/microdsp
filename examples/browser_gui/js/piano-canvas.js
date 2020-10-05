@@ -1,6 +1,4 @@
 class IndicatorDot {
-  keyNoteNumber
-  alpha
   constructor() {
     this.keyNoteNumber = 0
     this.alpha = 0
@@ -8,12 +6,15 @@ class IndicatorDot {
 }
 
 class PianoCanvas extends CanvasBase {
-  numberOfOctaves = 5
-  startOctave = 2 // lowest note is A{startOctave}
-  indicatorDots = [
-    new IndicatorDot(),
-    new IndicatorDot()
-  ]
+  constructor(canvasElementId) {
+    super(canvasElementId)
+    this.numberOfOctaves = 5
+    this.startOctave = 2 // lowest note is A{startOctave}
+    this.indicatorDots = [
+      new IndicatorDot(),
+      new IndicatorDot()
+    ]
+  }
 
   render(pitchReading) {
     this.clear("#ffffff")
