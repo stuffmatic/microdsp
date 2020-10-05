@@ -138,9 +138,9 @@ pub struct PitchDetectionResult {
     /// The estimated pitch period in samples.
     pub pitch_period: f32,
     /// The analyzed window.
-    pub window: Vec<f32>, // TODO: should be a slice
+    pub window: Box<[f32]>,
     /// The normalized square difference function
-    pub nsdf: Vec<f32>,
+    pub nsdf: Box<[f32]>,
     /// The number of key maxima found during the peak picking phase. May be 0, in which case
     /// the result is considered invalid.
     pub key_max_count: usize,
@@ -148,21 +148,28 @@ pub struct PitchDetectionResult {
     pub key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
     /// The index into `key_maxima` of the selected key maximum
     pub selected_key_max_index: usize,
-    r_prime: Vec<microfft::Complex32>, // TODO: should be a slice
+    ///
+    r_prime: Box<[microfft::Complex32]>,
 }
 
 impl PitchDetectionResult {
     pub fn new(window_size: usize, lag_count: usize) -> PitchDetectionResult {
+        // Allocate buffers
+        let window = (vec![0.0; window_size]).into_boxed_slice();
+        let nsdf = (vec![0.0; lag_count]).into_boxed_slice();
+        let r_prime = (vec![
+            microfft::Complex32::new(0.0, 0.0);
+            autocorr_fft_size(window_size, lag_count)
+        ]).into_boxed_slice();
+
+        // Create the instance
         PitchDetectionResult {
             frequency: 0.0,
             clarity: 0.0,
             note_number: 0.0,
-            window: vec![0.0; window_size],
-            nsdf: vec![0.0; lag_count],
-            r_prime: vec![
-                microfft::Complex32::new(0.0, 0.0);
-                autocorr_fft_size(window_size, lag_count)
-            ],
+            window,
+            nsdf,
+            r_prime,
             key_max_count: 0,
             key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
             selected_key_max_index: 0,

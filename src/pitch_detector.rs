@@ -18,8 +18,8 @@ pub struct PitchDetector {
     window_overlap: usize,
     window_distance_counter: usize, // TODO: rename
     input_buffer_write_index: usize,
-    input_buffer: Vec<f32>,          // TODO: should be a slice
-    filtered_input_buffer: Vec<f32>, // TODO: should be a slice
+    input_buffer: Box<[f32]>,
+    filtered_input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
     equal_loudness_filter: EqualLoudnessFilter,
     pub result: PitchDetectionResult,
@@ -60,8 +60,8 @@ impl PitchDetector {
             window_overlap,
             window_distance_counter: 0,
             input_buffer_write_index: 0,
-            input_buffer: vec![0.0; window_size],
-            filtered_input_buffer: vec![0.0; window_size],
+            input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
+            filtered_input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
             has_filled_input_buffer: false,
             equal_loudness_filter: EqualLoudnessFilter::new(sample_rate as f32),
             result: PitchDetectionResult::new(window_size, lag_count),
