@@ -1,7 +1,6 @@
 use std::vec;
 
-use crate::equal_loudness_filter::EqualLoudnessFilter;
-use crate::pitch_detection_result::PitchDetectionResult;
+use crate::result::PitchDetectionResult;
 
 /// Handles collecting input samples into (possibly overlapping) windows
 /// and performs pitch detection on each newly filled window.
@@ -19,9 +18,7 @@ pub struct PitchDetector {
     window_distance_counter: usize, // TODO: rename
     input_buffer_write_index: usize,
     input_buffer: Box<[f32]>,
-    filtered_input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
-    equal_loudness_filter: EqualLoudnessFilter,
     pub result: PitchDetectionResult,
 }
 
@@ -61,9 +58,7 @@ impl PitchDetector {
             window_distance_counter: 0,
             input_buffer_write_index: 0,
             input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
-            filtered_input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
             has_filled_input_buffer: false,
-            equal_loudness_filter: EqualLoudnessFilter::new(sample_rate as f32),
             result: PitchDetectionResult::new(window_size, lag_count),
         }
     }

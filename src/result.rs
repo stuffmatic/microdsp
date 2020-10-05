@@ -220,6 +220,7 @@ impl PitchDetectionResult {
     }
 
     /// Indicates if the detection result has a valid pitch estimate.
+    /// TODO: SEE IS_TONE
     pub fn is_valid(&self) -> bool {
         self.key_max_count > 0
     }

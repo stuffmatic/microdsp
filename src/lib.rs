@@ -76,12 +76,11 @@
 //! println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //! ```
 
-mod equal_loudness_filter;
 mod key_maximum;
-mod pitch_detection_result;
-mod pitch_detector;
+mod result;
+mod detector;
 
 pub use key_maximum::KeyMaximum;
-pub use pitch_detection_result::PitchDetectionResult;
-pub use pitch_detector::PitchDetector;
-pub use pitch_detector::ProcessingResult;
+pub use result::PitchDetectionResult;
+pub use detector::PitchDetector;
+pub use detector::ProcessingResult;
