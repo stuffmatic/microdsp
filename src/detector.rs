@@ -1,11 +1,11 @@
 use std::vec;
 
-use crate::result::PitchDetectionResult;
+use crate::result::Result;
 
 /// Handles collecting input samples into (possibly overlapping) windows
 /// and performs pitch detection on each newly filled window.
 /// TODO: ALSO HANDLES PREPROCESSING.
-pub struct PitchDetector {
+pub struct Detector {
     /// The audio sample rate in Hz.
     sample_rate: f32,
     /// The size of the windows to analyze.
@@ -19,7 +19,7 @@ pub struct PitchDetector {
     input_buffer_write_index: usize,
     input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
-    pub result: PitchDetectionResult,
+    pub result: Result,
 }
 
 /// The result of passing a chunk to the pitch detector. TODO: Rename this
@@ -34,13 +34,12 @@ pub enum ProcessingResult {
     ReachedEndOfBuffer,
 }
 
-impl PitchDetector {
+impl Detector {
     pub fn new(
         sample_rate: f32,
         window_size: usize,
         window_overlap: usize,
-        use_equal_loudness_filter: bool,
-    ) -> PitchDetector {
+    ) -> Detector {
         let lag_count = window_size / 2;
 
         if window_size == 0 {
@@ -51,7 +50,7 @@ impl PitchDetector {
             panic!("Window overlap must be less than window size.")
         }
 
-        PitchDetector {
+        Detector {
             sample_rate,
             window_size,
             window_overlap,
@@ -59,11 +58,11 @@ impl PitchDetector {
             input_buffer_write_index: 0,
             input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
             has_filled_input_buffer: false,
-            result: PitchDetectionResult::new(window_size, lag_count),
+            result: Result::new(window_size, lag_count),
         }
     }
 
-    pub fn process_window(&mut self, samples: &[f32]) -> &PitchDetectionResult {
+    pub fn process_window(&mut self, samples: &[f32]) -> &Result {
         if samples.len() != self.window_size {
             panic!("The input buffer size must equal the window size")
         }
@@ -130,7 +129,7 @@ mod tests {
             let sine_value = (2.0 * std::f32::consts::PI * f * (i as f32) / sample_rate).sin();
             window[i] = sine_value;
         }
-        let mut detector = PitchDetector::new(sample_rate, window_size, window_overlap, true);
+        let mut detector = Detector::new(sample_rate, window_size, window_overlap);
 
         let mut sample_offset: usize = 0;
         while sample_offset < window.len() {
@@ -149,13 +148,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_overlap() {
-        PitchDetector::new(44100.0, 100, 101, true);
+        Detector::new(44100.0, 100, 101);
     }
 
     #[test]
     #[should_panic]
     fn test_zero_window_size() {
-        PitchDetector::new(44100.0, 0, 0, true);
+        Detector::new(44100.0, 0, 0);
     }
 
     #[test]
@@ -167,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_process_beyond_last_sample() {
-        let mut detector = PitchDetector::new(44100.0, 1024, 3 * 256, true);
+        let mut detector = Detector::new(44100.0, 1024, 3 * 256);
         let buffer: Vec<f32> = vec![0.0; 10000];
         match detector.process(&buffer[..], buffer.len()) {
             ProcessingResult::ReachedEndOfBuffer => {
@@ -191,7 +190,7 @@ mod tests {
             buffer[i] = value as f32;
         }
 
-        let mut detector = PitchDetector::new(44100.0, window_size, window_overlap, true);
+        let mut detector = Detector::new(44100.0, window_size, window_overlap);
 
         // Verify that the buffer to process in callback i starts with the value i
         let mut result_count = 0;

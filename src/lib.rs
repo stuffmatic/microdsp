@@ -4,10 +4,9 @@
 //! The algorithm is described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf)
 //! by Philip McLeod and Geoff Wyvill.
 //!
-//! Features
-//! * Includes the optimizations suggested in the above paper, including
-//! FFT accelerated autocorrelation computation
-//! * No allocations, suitable for real time audio use.
+//! * Reasonably performant - implements the optimizations suggested in the paper,
+//! including FFT based autocorrelation computation.
+//! * Suitable for real time audio use - only allocates a modest amount of memory on initialization.
 //!
 //! # Examples
 //! ## Streaming API
@@ -15,14 +14,14 @@
 //! samples into (possibly overlapping) windows and processing each newly filled window.
 //!
 //! ```
-//! use mpm_pitch::PitchDetector;
+//! use mpm_pitch::Detector;
 //! use mpm_pitch::ProcessingResult;
 //!
 //! // Create a pitch detector instance
 //! let sample_rate = 44100.0;
 //! let window_size = 512;
 //! let window_overlap = 128;
-//! let mut detector = PitchDetector::new(sample_rate, window_size, window_overlap, true);
+//! let mut detector = Detector::new(sample_rate, window_size, window_overlap);
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
 //! let mut chunk: Vec<f32> = vec![0.0; 10000];
@@ -57,13 +56,13 @@
 //! ## Single window API
 //! Used to process a window directly. Useful for profiling and testing.
 //! ```
-//! use mpm_pitch::PitchDetectionResult;
+//! use mpm_pitch::Result;
 //!
 //! // Create an instance of PitchDetectionResult
 //! let sample_rate = 44100.0;
 //! let window_size = 512;
 //! let lag_count = 256;
-//! let mut result = PitchDetectionResult::new(window_size, lag_count);
+//! let mut result = Result::new(window_size, lag_count);
 //!
 //! // Fill the window to process with a pure tone at 440 Hz.
 //! for i in 0..window_size {
@@ -76,11 +75,12 @@
 //! println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //! ```
 
+mod detector;
 mod key_maximum;
 mod result;
-mod detector;
+mod util;
 
 pub use key_maximum::KeyMaximum;
-pub use result::PitchDetectionResult;
-pub use detector::PitchDetector;
+pub use result::Result;
+pub use detector::Detector;
 pub use detector::ProcessingResult;

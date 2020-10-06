@@ -7,7 +7,7 @@ use dev_helpers::note_number_to_string;
 
 use crossbeam_queue::spsc;
 
-use mpm_pitch::PitchDetector;
+use mpm_pitch::Detector;
 use mpm_pitch::ProcessingResult;
 
 struct PitchReading {
@@ -16,13 +16,13 @@ struct PitchReading {
 }
 
 struct MPMAudioProcessor {
-    pitch_detector: PitchDetector,
+    pitch_detector: Detector,
 }
 
 impl MPMAudioProcessor {
     fn new(sample_rate: f32) -> MPMAudioProcessor {
         MPMAudioProcessor {
-            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256, false),
+            pitch_detector: Detector::new(sample_rate, 1024, 3 * 256),
         }
     }
 }

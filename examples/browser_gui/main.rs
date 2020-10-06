@@ -12,8 +12,8 @@ use dev_helpers::WebsocketServer;
 use dev_helpers::note_number_to_string;
 
 use mpm_pitch::KeyMaximum;
-use mpm_pitch::PitchDetectionResult;
-use mpm_pitch::PitchDetector;
+use mpm_pitch::Result;
+use mpm_pitch::Detector;
 use mpm_pitch::ProcessingResult;
 
 const MAX_NSDF_SIZE: usize = 1024;
@@ -62,7 +62,7 @@ struct PitchReadingInfo {
 }
 
 impl PitchReadingInfo {
-    fn new(timestamp: f32, result: &PitchDetectionResult) -> PitchReadingInfo {
+    fn new(timestamp: f32, result: &Result) -> PitchReadingInfo {
         let mut nsdf = [0.0_f32; MAX_NSDF_SIZE];
         for (i, val) in result.nsdf.iter().enumerate() {
             if i >= MAX_NSDF_SIZE {
@@ -115,7 +115,7 @@ enum MPMAudioProcessorMessage {
 struct MPMAudioProcessor {
     processed_sample_count: usize,
     sample_rate: f32,
-    pitch_detector: PitchDetector,
+    pitch_detector: Detector,
 }
 
 impl MPMAudioProcessor {
@@ -125,7 +125,7 @@ impl MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256, false)
+            pitch_detector: Detector::new(sample_rate, 1024, 3 * 256)
         }
     }
 }

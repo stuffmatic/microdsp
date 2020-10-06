@@ -18,7 +18,7 @@ serde_json = "*"
 crossbeam-queue = { git = "https://github.com/stjepang/crossbeam", branch = "spsc" }
 
 [[bench]]
-name = "pitch_detection_result"
+name = "result"
 harness = false
 
 [dependencies]
