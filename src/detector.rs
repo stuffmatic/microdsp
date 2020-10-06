@@ -23,11 +23,7 @@ pub struct Detector {
 }
 
 impl Detector {
-    pub fn new(
-        sample_rate: f32,
-        window_size: usize,
-        window_overlap: usize,
-    ) -> Detector {
+    pub fn new(sample_rate: f32, window_size: usize, window_overlap: usize) -> Detector {
         let lag_count = window_size / 2;
 
         if window_size == 0 {
@@ -59,7 +55,10 @@ impl Detector {
         &self.result
     }
 
-    pub fn process<F>(&mut self, samples: &[f32], mut result_handler: F) -> bool where F: FnMut(usize, &Result) {
+    pub fn process<F>(&mut self, samples: &[f32], mut result_handler: F) -> bool
+    where
+        F: FnMut(usize, &Result),
+    {
         let window_distance = self.window_size - self.window_overlap;
         for sample_index in 0..samples.len() {
             // Accumulate this sample

@@ -1,125 +1,125 @@
 pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
-  if lag_count > window_size {
-      panic!("Lag count must not be greater than the window size");
-  }
+    if lag_count > window_size {
+        panic!("Lag count must not be greater than the window size");
+    }
 }
 
 /// Converts a frequency to a MIDI note number (with a fractional part)
 pub fn freq_to_midi_note(f: f32) -> f32 {
-  // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
-  // MIDI note 21 is A0 at 27.5 Hz
-  21.0_f32 + (f / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10()
+    // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
+    // MIDI note 21 is A0 at 27.5 Hz
+    21.0_f32 + (f / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10()
 }
 
 /// Computes m' defined in eq (6), using the incremental subtraction
 /// algorithm described in section 6 - Efficient calculation of SDF.
 pub fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32]) {
-  let lag_count = result.len();
-  let window_size = window.len();
-  validate_window_size_lag_count(window_size, lag_count);
+    let lag_count = result.len();
+    let window_size = window.len();
+    validate_window_size_lag_count(window_size, lag_count);
 
-  result[0] = 2.0 * autocorr_at_lag_0;
-  for i in 1..lag_count {
-      let v1 = window[window_size - i];
-      let v2 = window[i - 1];
-      result[i] = result[i - 1] - v1 * v1 - v2 * v2;
-  }
+    result[0] = 2.0 * autocorr_at_lag_0;
+    for i in 1..lag_count {
+        let v1 = window[window_size - i];
+        let v2 = window[i - 1];
+        result[i] = result[i - 1] - v1 * v1 - v2 * v2;
+    }
 }
 
 /// Computes the length of the FFT needed to compute the autocorrelation
 /// for a given window size and lag count to avoid circular convolution effects.
 pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
-  validate_window_size_lag_count(window_size, lag_count);
+    validate_window_size_lag_count(window_size, lag_count);
 
-  let min_length = window_size + lag_count - 1;
-  let mut result: usize = 16; // Start at microfft's minimum size
-  while result < min_length {
-      result = result << 1;
-  }
-  result
+    let min_length = window_size + lag_count - 1;
+    let mut result: usize = 16; // Start at microfft's minimum size
+    while result < min_length {
+        result = result << 1;
+    }
+    result
 }
 
 /// Performs an in-place FFT on a given buffer.
 pub fn fft_in_place(buffer: &mut [microfft::Complex32]) {
-  let fft_size = buffer.len();
-  match fft_size {
-      16 => {
-          let _ = microfft::complex::cfft_16(buffer);
-      }
-      32 => {
-          let _ = microfft::complex::cfft_32(buffer);
-      }
-      64 => {
-          let _ = microfft::complex::cfft_64(buffer);
-      }
-      128 => {
-          let _ = microfft::complex::cfft_128(buffer);
-      }
-      256 => {
-          let _ = microfft::complex::cfft_256(buffer);
-      }
-      512 => {
-          let _ = microfft::complex::cfft_512(buffer);
-      }
-      1024 => {
-          let _ = microfft::complex::cfft_1024(buffer);
-      }
-      2048 => {
-          let _ = microfft::complex::cfft_2048(buffer);
-      }
-      4096 => {
-          let _ = microfft::complex::cfft_4096(buffer);
-      }
-      _ => panic!("Unsupported fft size {}", fft_size),
-  }
+    let fft_size = buffer.len();
+    match fft_size {
+        16 => {
+            let _ = microfft::complex::cfft_16(buffer);
+        }
+        32 => {
+            let _ = microfft::complex::cfft_32(buffer);
+        }
+        64 => {
+            let _ = microfft::complex::cfft_64(buffer);
+        }
+        128 => {
+            let _ = microfft::complex::cfft_128(buffer);
+        }
+        256 => {
+            let _ = microfft::complex::cfft_256(buffer);
+        }
+        512 => {
+            let _ = microfft::complex::cfft_512(buffer);
+        }
+        1024 => {
+            let _ = microfft::complex::cfft_1024(buffer);
+        }
+        2048 => {
+            let _ = microfft::complex::cfft_2048(buffer);
+        }
+        4096 => {
+            let _ = microfft::complex::cfft_4096(buffer);
+        }
+        _ => panic!("Unsupported fft size {}", fft_size),
+    }
 }
 
 pub fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: usize) {
-  // Sanity checks
-  let fft_size = autocorr_fft_size(window.len(), lag_count);
-  if result.len() != fft_size {
-      panic!(
-          "Got autocorr fft buffer of length {}, expected {}.",
-          result.len(),
-          fft_size
-      )
-  }
+    // Sanity checks
+    let fft_size = autocorr_fft_size(window.len(), lag_count);
+    if result.len() != fft_size {
+        panic!(
+            "Got autocorr fft buffer of length {}, expected {}.",
+            result.len(),
+            fft_size
+        )
+    }
 
-  validate_window_size_lag_count(window.len(), lag_count);
+    validate_window_size_lag_count(window.len(), lag_count);
 
-  // TODO: exploit the fact that the signals are real-only.
+    // TODO: exploit the fact that the signals are real-only.
 
-  // Build FFT input signal
-  for (i, sample) in window.iter().enumerate() {
-      result[i].re = *sample;
-      result[i].im = 0.0;
-  }
-  for i in window.len()..fft_size {
-      result[i].re = 0.0;
-      result[i].im = 0.0;
-  }
+    // Build FFT input signal
+    for (i, sample) in window.iter().enumerate() {
+        result[i].re = *sample;
+        result[i].im = 0.0;
+    }
+    for i in window.len()..fft_size {
+        result[i].re = 0.0;
+        result[i].im = 0.0;
+    }
 
-  // Perform the FFT in place
-  fft_in_place(&mut result[..]);
+    // Perform the FFT in place
+    fft_in_place(&mut result[..]);
 
-  // Compute the power spectral density by point-wise multiplication by the complex conjugate.
-  for sample in result.iter_mut() {
-      sample.re = sample.re * sample.re + sample.im * sample.im;
-      sample.im = 0.0;
-  }
+    // Compute the power spectral density by point-wise multiplication by the complex conjugate.
+    for sample in result.iter_mut() {
+        sample.re = sample.re * sample.re + sample.im * sample.im;
+        sample.im = 0.0;
+    }
 
-  // Perform an inverse FFT to get the autocorrelation. This is done in two steps:
-  // 1. Reorder the power spectral density
-  result[1..].reverse();
-  // 2. Compute the FFT in place, which thanks to the reordering above becomes the inverse FFT (up to a scale)
-  fft_in_place(&mut result[..]);
+    // Perform an inverse FFT to get the autocorrelation. This is done in two steps:
+    // 1. Reorder the power spectral density
+    result[1..].reverse();
+    // 2. Compute the FFT in place, which thanks to the reordering above becomes the inverse FFT (up to a scale)
+    fft_in_place(&mut result[..]);
 
-  // Apply scaling factor
-  let scale = 1.0 / (fft_size as f32);
-  for i in 0..lag_count {
-      result[i].re = scale * result[i].re;
-      result[i].im = scale * result[i].re;
-  }
+    // Apply scaling factor
+    let scale = 1.0 / (fft_size as f32);
+    for i in 0..lag_count {
+        result[i].re = scale * result[i].re;
+        result[i].im = scale * result[i].re;
+    }
 }
 
 #[cfg(test)]

@@ -39,7 +39,8 @@ impl Result {
         let r_prime = (vec![
             microfft::Complex32::new(0.0, 0.0);
             util::autocorr_fft_size(window_size, lag_count)
-        ]).into_boxed_slice();
+        ])
+        .into_boxed_slice();
 
         // Create the instance
         Result {
@@ -114,10 +115,15 @@ impl Result {
     /// * `clarity_threshold` - XX is a reasonable default value.
     /// * `clarity_tolerance` - XX is a reasonable default value.
     /// * `period_tolerance` - XX is a reasonable default value.
-    pub fn is_tone_with_options(&self, clarity_threshold: f32, clarity_tolerance: f32, period_tolerance: f32) -> bool {
+    pub fn is_tone_with_options(
+        &self,
+        clarity_threshold: f32,
+        clarity_tolerance: f32,
+        period_tolerance: f32,
+    ) -> bool {
         if !self.is_valid() {
             // No key maxima, can't be a tone
-            return false
+            return false;
         }
 
         let is_tone = match self.key_max_closest_to_double_period() {
@@ -136,9 +142,11 @@ impl Result {
                 let meets_clarity_tolerance = delta_clarity > -clarity_tolerance;
 
                 // println!("rel_lag_difference {}, delta_value {}", rel_lag_difference, delta_value);
-                self.clarity > clarity_threshold && meets_period_tolerance && meets_clarity_tolerance
+                self.clarity > clarity_threshold
+                    && meets_period_tolerance
+                    && meets_clarity_tolerance
             }
-            None => self.clarity > clarity_threshold
+            None => self.clarity > clarity_threshold,
         };
         is_tone
     }
@@ -388,5 +396,4 @@ mod tests {
 
         // TODO: ADD ASSERTS
     }*/
-
 }

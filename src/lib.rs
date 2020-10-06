@@ -63,6 +63,6 @@ mod key_maximum;
 mod result;
 mod util;
 
+pub use detector::Detector;
 pub use key_maximum::KeyMaximum;
 pub use result::Result;
-pub use detector::Detector;

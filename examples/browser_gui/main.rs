@@ -6,14 +6,14 @@ use serde_json;
 
 use crossbeam_queue::spsc;
 
+use dev_helpers::note_number_to_string;
 use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 use dev_helpers::WebsocketServer;
-use dev_helpers::note_number_to_string;
 
+use mpm_pitch::Detector;
 use mpm_pitch::KeyMaximum;
 use mpm_pitch::Result;
-use mpm_pitch::Detector;
 
 const MAX_NSDF_SIZE: usize = 1024;
 
@@ -102,7 +102,11 @@ impl PitchReadingInfo {
             key_maxima_count: result.key_max_count,
             key_maxima: result.key_maxima,
             key_maxima_ser,
-            note_info: if is_tone { Some(note_number_to_string(result.note_number)) } else { None }
+            note_info: if is_tone {
+                Some(note_number_to_string(result.note_number))
+            } else {
+                None
+            },
         }
     }
 }
@@ -118,13 +122,11 @@ struct MPMAudioProcessor {
 }
 
 impl MPMAudioProcessor {
-    fn new(
-        sample_rate: f32
-    ) -> MPMAudioProcessor {
+    fn new(sample_rate: f32) -> MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: Detector::new(sample_rate, 1024, 3 * 256)
+            pitch_detector: Detector::new(sample_rate, 1024, 3 * 256),
         }
     }
 }
@@ -140,14 +142,15 @@ impl AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
     ) -> bool {
         let processed_sample_count = self.processed_sample_count;
         let sample_rate = self.sample_rate;
-        self.pitch_detector.process(in_buffer, |sample_index, result| {
-            let timestamp = ((processed_sample_count + sample_index) as f32) / sample_rate;
+        self.pitch_detector
+            .process(in_buffer, |sample_index, result| {
+                let timestamp = ((processed_sample_count + sample_index) as f32) / sample_rate;
 
-            let message = MPMAudioProcessorMessage::DetectedPitch {
-                info: PitchReadingInfo::new(timestamp, result),
-            };
-            let push_result = to_main_thread.push(message);
-        });
+                let message = MPMAudioProcessorMessage::DetectedPitch {
+                    info: PitchReadingInfo::new(timestamp, result),
+                };
+                let push_result = to_main_thread.push(message);
+            });
 
         self.processed_sample_count += in_buffer.len();
 
