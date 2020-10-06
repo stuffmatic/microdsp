@@ -29,7 +29,6 @@ impl KeyMaximum {
 
         // Use parabolic interpolation to approximate
         // the true maximum using the left and right neighbors
-        // TODO: what happens if the lag is the first/last index?
         let left_index = std::cmp::max(0, lag_index - 1);
         let right_index = std::cmp::min(nsdf.len() - 1, lag_index + 1);
         let left = nsdf[left_index];

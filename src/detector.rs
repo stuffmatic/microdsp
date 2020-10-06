@@ -4,7 +4,6 @@ use crate::result::Result;
 
 /// Handles collecting input samples into (possibly overlapping) windows
 /// and performs pitch detection on each newly filled window.
-/// TODO: ALSO HANDLES PREPROCESSING.
 pub struct Detector {
     /// The audio sample rate in Hz.
     sample_rate: f32,
@@ -15,7 +14,7 @@ pub struct Detector {
     /// `i` are the same as the first `window_overlap` of window `i + 1`.
     /// Must be less than `window_size`.
     window_overlap: usize,
-    window_distance_counter: usize, // TODO: rename
+    window_distance_counter: usize, // TODO: rename?
     input_buffer_write_index: usize,
     input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
@@ -44,15 +43,6 @@ impl Detector {
             has_filled_input_buffer: false,
             result: Result::new(window_size, lag_count),
         }
-    }
-
-    pub fn process_window(&mut self, samples: &[f32]) -> &Result {
-        if samples.len() != self.window_size {
-            panic!("The input buffer size must equal the window size")
-        }
-        self.result.window.copy_from_slice(&samples[..]);
-        self.result.compute(self.sample_rate);
-        &self.result
     }
 
     pub fn process<F>(&mut self, samples: &[f32], mut result_handler: F) -> bool

@@ -9,17 +9,15 @@
 //! * Suitable for real time audio use - only allocates a modest amount of memory on initialization.
 //!
 //! # Examples
-//! ## Streaming API
-//! Used for passing (sequences of) chunks of arbitrary size to the processor. Handles collecting
-//! samples into (possibly overlapping) windows and processing each newly filled window.
-//!
+//! ## High level API (recommended)
+//! Handles collecting input samples into possibly overlapping windows and processing each newly filled window.
 //! ```
 //! use mpm_pitch::Detector;
 //!
 //! // Create a pitch detector instance
 //! let sample_rate = 44100.0;
-//! let window_size = 512;
-//! let window_overlap = 128;
+//! let window_size = 512; // The number of samples to perform pitch detection on.
+//! let window_overlap = 128; // Pitch is computed every window_size - window_overlap samples
 //! let mut detector = Detector::new(sample_rate, window_size, window_overlap);
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
@@ -29,15 +27,19 @@
 //!     chunk[i] = sine_value;
 //! }
 //!
-//! // Call process, which consumes the input buffer in chunks.
+//! // Perform pitch detection. The detector extracts and processes windows and
+//! // invokes the provided callback when a new window has been analyzed.
 //! detector.process(&chunk[..], |sample_index, result| {
-//!     if result.is_valid() {
-//!         println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
+//!     let time_s = sample_rate * (sample_index as f32);
+//!     if result.is_tone() {
+//!         println!("t = {} s, Frequency {} Hz, clarity {}", time_s, result.frequency, result.clarity);
+//!     } else {
+//!         // No discernable pitch detected.
 //!     }
 //! });
 //! ```
-//! ## Single window API
-//! Used to process a window directly. Useful for profiling and testing.
+//! ## Low level API
+//! Used to process a window directly. Useful for profiling and testing or if you want roll your own window handling.
 //! ```
 //! use mpm_pitch::Result;
 //!

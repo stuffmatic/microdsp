@@ -3,8 +3,7 @@ use crate::util;
 
 /// The maximum number of key maxima to gather during the peak finding phase.
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;
-/// The result of a (possibly failed) pitch detection.
-/// TODO: MORE ON TONE CATEGORIZATION.
+/// A pitch detection result.
 pub struct Result {
     /// The estimated pitch frequency in Hz.
     pub frequency: f32,
@@ -99,22 +98,35 @@ impl Result {
         20. * self.window_rms().log10()
     }
 
-    /// Indicates if the detection result has a valid pitch estimate.
-    /// TODO: SEE IS_TONE
+    /// Indicates if the detection result has a valid pitch estimate. Note that this does not necessarily
+    /// mean that the result corresponds to a tone. See `is_tone` and `is_tone_with_options`.
     pub fn is_valid(&self) -> bool {
         self.key_max_count > 0
     }
 
+    /// Returns the minimum detectable frequency in Hz at a give sample rate.
+    pub fn min_detectable_frequency(&self, sample_rate: f32) -> f32 {
+        sample_rate / (self.nsdf.len() as f32)
+    }
+
+    /// Returns the number of the lowest detectable MIDI at a give sample rate.
+    pub fn min_detectable_note_number(&self, sample_rate: f32) -> f32 {
+        util::freq_to_midi_note(self.min_detectable_frequency(sample_rate))
+    }
+
+    /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
     pub fn is_tone(&self) -> bool {
         self.is_tone_with_options(0.9, 0.1, 0.05)
     }
 
     /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
+    /// Compares the selected key maximum _m_, and the key maximum _n_ closest to the double period to
+    /// a number of thresholds.
     /// # Arguments
     ///
-    /// * `clarity_threshold` - XX is a reasonable default value.
-    /// * `clarity_tolerance` - XX is a reasonable default value.
-    /// * `period_tolerance` - XX is a reasonable default value.
+    /// * `clarity_threshold` - The clarity of _m_ must be greater than this value.
+    /// * `clarity_tolerance` - The clarity of _n_ must not be more than this below the clarity of _m_.
+    /// * `period_tolerance` - The relative difference between the lag of _m_ and the distance between _n_ and _m_ must be greater than this value.
     pub fn is_tone_with_options(
         &self,
         clarity_threshold: f32,
@@ -284,10 +296,6 @@ impl Result {
                 selected_max.value
             };
 
-            // TODO: If the selected max really corresponds to the fundamental pitch,
-            // there should be high NSDF values at integer multiples of the lag of the selected max.
-            // If that's not the case, then we're probably dealing with a spurious peak?
-
             let pitch_period = self.pitch_period / sample_rate;
             self.frequency = 1.0 / pitch_period;
             self.note_number = util::freq_to_midi_note(self.frequency);
@@ -378,22 +386,4 @@ mod tests {
             );
         }
     }
-
-    /*#[test]
-    fn test_noise() {
-        // TODO: fix this
-        let rng: Pcg64 = rand_seeder::Seeder::from("hello seed").make_rng();
-
-        let sample_rate = 44100.0;
-        let window_size = 1024;
-        let mut result = PitchDetectionResult::new(window_size, window_size / 2);
-        for i in 0..result.window.len() {
-            // result.window[i] = rng.ne
-            // rng.next_u32();
-        }
-        result.compute(sample_rate);
-        let a = 0;
-
-        // TODO: ADD ASSERTS
-    }*/
 }

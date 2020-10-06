@@ -24,7 +24,7 @@ pub fn note_number_to_string(note_number: f32) -> String {
   let nearest_midi_note = (note_number.round() as usize).max(a0_number);
   let octave_index = (nearest_midi_note - a0_number) / 12;
   let note_in_octave = (nearest_midi_note - a0_number) - 12 * octave_index;
-  let cent_offset = note_number - (nearest_midi_note as f32);
-  let cent_sign = if cent_offset > 0. { "+" } else { "-" };
-  return format!("{}-{} | {}{:.2} cents", note_names[note_in_octave], octave_index, cent_sign, cent_offset.abs())
+  let cent_offset = (100.0 * (note_number - (nearest_midi_note as f32))).round() as i32;
+  let cent_sign = if cent_offset > 0 { "+" } else { "-" };
+  return format!("{}-{} | {}{:02} cents", note_names[note_in_octave], octave_index, cent_sign, cent_offset.abs())
 }
