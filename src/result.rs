@@ -3,7 +3,7 @@ use crate::util;
 
 /// The maximum number of key maxima to gather during the peak finding phase.
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;
-/// A pitch detection result.
+/// The result of a (possibly failed) pitch detection.
 /// TODO: MORE ON TONE CATEGORIZATION.
 pub struct Result {
     /// The estimated pitch frequency in Hz.
@@ -104,13 +104,17 @@ impl Result {
         self.key_max_count > 0
     }
 
+    pub fn is_tone(&self) -> bool {
+        self.is_tone_with_options(0.9, 0.1, 0.05)
+    }
+
     /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
     /// # Arguments
     ///
     /// * `clarity_threshold` - XX is a reasonable default value.
     /// * `clarity_tolerance` - XX is a reasonable default value.
     /// * `period_tolerance` - XX is a reasonable default value.
-    pub fn is_tone(&self, clarity_threshold: f32, clarity_tolerance: f32, period_tolerance: f32) -> bool {
+    pub fn is_tone_with_options(&self, clarity_threshold: f32, clarity_tolerance: f32, period_tolerance: f32) -> bool {
         if !self.is_valid() {
             // No key maxima, can't be a tone
             return false

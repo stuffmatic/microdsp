@@ -37,7 +37,7 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
     ) -> bool {
         self.pitch_detector
             .process(in_buffer, |sample_index, result| {
-                if result.is_tone(0.9, 0.1, 0.05) {
+                if result.is_tone() {
                     let push_result = to_main_thread.push(PitchReading {
                         note_number: result.note_number,
                         frequency: result.frequency,

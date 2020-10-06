@@ -85,7 +85,7 @@ impl PitchReadingInfo {
             }
         }
 
-        let is_tone = result.is_tone(0.9, 0.1, 0.05);
+        let is_tone = result.is_tone();
 
         PitchReadingInfo {
             timestamp,
