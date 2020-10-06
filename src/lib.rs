@@ -15,7 +15,6 @@
 //!
 //! ```
 //! use mpm_pitch::Detector;
-//! use mpm_pitch::ProcessingResult;
 //!
 //! // Create a pitch detector instance
 //! let sample_rate = 44100.0;
@@ -30,28 +29,12 @@
 //!     chunk[i] = sine_value;
 //! }
 //!
-//! // Call process until all samples have been consumed. Each call consumes
-//! // at most W samples, where W is the window size.
-//! let mut sample_offset: usize = 0;
-//! while sample_offset < chunk.len() {
-//!     match detector.process(&chunk[..], sample_offset) {
-//!         ProcessingResult::ProcessedWindow { sample_index } => {
-//!             // Consumed enough samples to fill and process another window.
-//!             // Inspect the result if it's valid.
-//!             let result = &detector.result;
-//!             if result.is_valid() {
-//!                 println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
-//!             }
-//!
-//!             // Sample_index is the index of the next sample to process.
-//!             sample_offset = sample_index;
-//!         },
-//!         ProcessingResult::ReachedEndOfBuffer => {
-//!             // Finished processing the current chunk.
-//!             break;
-//!         }
+//! // Call process, which consumes the input buffer in chunks.
+//! detector.process(&chunk[..], |sample_index, result| {
+//!     if result.is_valid() {
+//!         println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //!     }
-//! }
+//! });
 //! ```
 //! ## Single window API
 //! Used to process a window directly. Useful for profiling and testing.
@@ -83,4 +66,3 @@ mod util;
 pub use key_maximum::KeyMaximum;
 pub use result::Result;
 pub use detector::Detector;
-pub use detector::ProcessingResult;

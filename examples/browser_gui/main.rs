@@ -14,7 +14,6 @@ use dev_helpers::note_number_to_string;
 use mpm_pitch::KeyMaximum;
 use mpm_pitch::Result;
 use mpm_pitch::Detector;
-use mpm_pitch::ProcessingResult;
 
 const MAX_NSDF_SIZE: usize = 1024;
 
@@ -139,25 +138,17 @@ impl AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
         to_main_thread: &spsc::Producer<MPMAudioProcessorMessage>,
         from_main_thread: &spsc::Consumer<MPMAudioProcessorMessage>,
     ) -> bool {
-        let mut sample_offset: usize = 0;
-        while sample_offset < in_buffer.len() {
-            match self.pitch_detector.process(&in_buffer[..], sample_offset) {
-                ProcessingResult::ProcessedWindow { sample_index } => {
-                    let timestamp =
-                        ((self.processed_sample_count + sample_offset) as f32) / self.sample_rate;
-                    let result = &self.pitch_detector.result;
+        let processed_sample_count = self.processed_sample_count;
+        let sample_rate = self.sample_rate;
+        self.pitch_detector.process(in_buffer, |sample_index, result| {
+            let timestamp = ((processed_sample_count + sample_index) as f32) / sample_rate;
 
-                    let message = MPMAudioProcessorMessage::DetectedPitch {
-                        info: PitchReadingInfo::new(timestamp, result),
-                    };
-                    let push_result = to_main_thread.push(message);
-                    sample_offset = sample_index;
-                }
-                _ => {
-                    break;
-                }
-            }
-        }
+            let message = MPMAudioProcessorMessage::DetectedPitch {
+                info: PitchReadingInfo::new(timestamp, result),
+            };
+            let push_result = to_main_thread.push(message);
+        });
+
         self.processed_sample_count += in_buffer.len();
 
         true

@@ -1,14 +1,13 @@
 use std::thread;
 use std::time::Duration;
 
+use dev_helpers::note_number_to_string;
 use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
-use dev_helpers::note_number_to_string;
 
 use crossbeam_queue::spsc;
 
 use mpm_pitch::Detector;
-use mpm_pitch::ProcessingResult;
 
 struct PitchReading {
     note_number: f32,
@@ -36,25 +35,15 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
         to_main_thread: &spsc::Producer<PitchReading>,
         _: &spsc::Consumer<PitchReading>,
     ) -> bool {
-        let mut sample_offset: usize = 0;
-        while sample_offset < in_buffer.len() {
-            match self.pitch_detector.process(&in_buffer[..], sample_offset) {
-                ProcessingResult::ProcessedWindow { sample_index } => {
-                    let result = &self.pitch_detector.result;
-                    if result.is_tone(0.9, 0.1, 0.05) {
-                        let push_result = to_main_thread.push(PitchReading {
-                            note_number: result.note_number,
-                            frequency: result.frequency
-                        });
-
-                    }
-                    sample_offset = sample_index;
+        self.pitch_detector
+            .process(in_buffer, |sample_index, result| {
+                if result.is_tone(0.9, 0.1, 0.05) {
+                    let push_result = to_main_thread.push(PitchReading {
+                        note_number: result.note_number,
+                        frequency: result.frequency,
+                    });
                 }
-                _ => {
-                    break;
-                }
-            }
-        }
+            });
 
         true
     }
@@ -79,9 +68,11 @@ fn main() {
                     // println!("Failed to pop message from audio thread. {}", reason);
                     break;
                 }
-                Ok(reading) => {
-                    println!("{} | {:.2} Hz", note_number_to_string(reading.note_number), reading.frequency)
-                },
+                Ok(reading) => println!(
+                    "{} | {:.2} Hz",
+                    note_number_to_string(reading.note_number),
+                    reading.frequency
+                ),
             }
         }
     }

@@ -105,6 +105,11 @@ impl Result {
     }
 
     /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
+    /// # Arguments
+    ///
+    /// * `clarity_threshold` - XX is a reasonable default value.
+    /// * `clarity_tolerance` - XX is a reasonable default value.
+    /// * `period_tolerance` - XX is a reasonable default value.
     pub fn is_tone(&self, clarity_threshold: f32, clarity_tolerance: f32, period_tolerance: f32) -> bool {
         if !self.is_valid() {
             // No key maxima, can't be a tone

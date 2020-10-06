@@ -19,19 +19,7 @@ pub struct Detector {
     input_buffer_write_index: usize,
     input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
-    pub result: Result,
-}
-
-/// The result of passing a chunk to the pitch detector. TODO: Rename this
-pub enum ProcessingResult {
-    /// Enough samples were consumed to fill and process a new window.
-    ProcessedWindow {
-        /// The index of the next sample to process in the input buffer,
-        /// i.e the sample offset to pass to the next call to `process`.
-        sample_index: usize,
-    },
-    /// Consumed all samples of the input buffer.
-    ReachedEndOfBuffer,
+    result: Result,
 }
 
 impl Detector {
@@ -71,11 +59,9 @@ impl Detector {
         &self.result
     }
 
-    // TODO: Add process_sample, consuming one sample at a time and returns an
-    // Option(&PitchDetectionResult)?
-    pub fn process(&mut self, samples: &[f32], sample_offset: usize) -> ProcessingResult {
+    pub fn process<F>(&mut self, samples: &[f32], mut result_handler: F) -> bool where F: FnMut(usize, &Result) {
         let window_distance = self.window_size - self.window_overlap;
-        for sample_index in sample_offset..samples.len() {
+        for sample_index in 0..samples.len() {
             // Accumulate this sample
             self.input_buffer[self.input_buffer_write_index] = samples[sample_index];
 
@@ -103,14 +89,12 @@ impl Detector {
                 }
                 self.window_distance_counter = (self.window_distance_counter + 1) % window_distance;
                 if should_process_window {
-                    return ProcessingResult::ProcessedWindow {
-                        sample_index: sample_index + 1,
-                    };
+                    result_handler(sample_index + 1, &self.result);
                 }
             }
         }
 
-        ProcessingResult::ReachedEndOfBuffer
+        false
     }
 }
 
@@ -131,18 +115,9 @@ mod tests {
         }
         let mut detector = Detector::new(sample_rate, window_size, window_overlap);
 
-        let mut sample_offset: usize = 0;
-        while sample_offset < window.len() {
-            match detector.process(&window[..], sample_offset) {
-                ProcessingResult::ProcessedWindow { sample_index } => {
-                    sample_offset = sample_index;
-
-                    // All windows should have (pretty much) the same pitch.
-                    assert!((f - detector.result.frequency).abs() <= 0.001);
-                }
-                _ => break,
-            }
-        }
+        detector.process(&window[..], |sample_offset: usize, result: &Result| {
+            assert!((f - result.frequency).abs() <= 0.001);
+        });
     }
 
     #[test]
@@ -162,18 +137,6 @@ mod tests {
         run_windowing_test(10, 4);
         run_windowing_test(10, 0);
         run_windowing_test(10, 1);
-    }
-
-    #[test]
-    fn test_process_beyond_last_sample() {
-        let mut detector = Detector::new(44100.0, 1024, 3 * 256);
-        let buffer: Vec<f32> = vec![0.0; 10000];
-        match detector.process(&buffer[..], buffer.len()) {
-            ProcessingResult::ReachedEndOfBuffer => {
-                // Expected
-            }
-            _ => assert!(false),
-        }
     }
 
     fn run_windowing_test(window_size: usize, window_overlap: usize) {
@@ -196,31 +159,25 @@ mod tests {
         let mut result_count = 0;
         let mut sample_offset: usize = 0;
 
-        while sample_offset < buffer.len() {
-            match detector.process(&buffer[..], sample_offset) {
-                ProcessingResult::ProcessedWindow { sample_index } => {
-                    // The sample index should advance in steps equal to the window distance
-                    // except for the first time, where the step should equal the window size.
-                    if result_count == 0 {
-                        assert_eq!(sample_index, window_size);
-                    } else {
-                        if sample_index - sample_offset != window_distance {
-                            let a = 0;
-                            assert_eq!(sample_index - sample_offset, window_distance);
-                        }
-                    }
-                    sample_offset = sample_index;
-
-                    // The sample offset should never be less than the window size
-                    assert!(sample_offset >= window_size);
-
-                    //
-                    let first_window_sample = detector.result.window[0];
-                    assert_eq!(first_window_sample as usize, result_count);
-                    result_count += 1;
+        detector.process(&buffer[..], |sample_index, result| {
+            // The sample index should advance in steps equal to the window distance
+            // except for the first time, where the step should equal the window size.
+            if result_count == 0 {
+                assert_eq!(sample_index, window_size);
+            } else {
+                if sample_index - sample_offset != window_distance {
+                    assert_eq!(sample_index - sample_offset, window_distance);
                 }
-                _ => break,
             }
-        }
+            sample_offset = sample_index;
+
+            // The sample offset should never be less than the window size
+            assert!(sample_offset >= window_size);
+
+            //
+            let first_window_sample = result.window[0];
+            assert_eq!(first_window_sample as usize, result_count);
+            result_count += 1;
+        });
     }
 }
