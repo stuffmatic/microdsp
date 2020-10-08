@@ -104,19 +104,19 @@ impl Result {
         self.key_max_count > 0
     }
 
-    /// Returns the minimum detectable frequency in Hz at a give sample rate.
+    /// Returns the lowest detectable frequency in Hz at a give sample rate.
     pub fn min_detectable_frequency(&self, sample_rate: f32) -> f32 {
         sample_rate / (self.nsdf.len() as f32)
     }
 
-    /// Returns the number of the lowest detectable MIDI at a give sample rate.
+    /// Returns the number of the lowest detectable MIDI note at a give sample rate.
     pub fn min_detectable_note_number(&self, sample_rate: f32) -> f32 {
         util::freq_to_midi_note(self.min_detectable_frequency(sample_rate))
     }
 
     /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
     pub fn is_tone(&self) -> bool {
-        self.is_tone_with_options(0.9, 0.1, 0.05)
+        self.is_tone_with_options(0.9, 0.5, 0.05)
     }
 
     /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
@@ -126,7 +126,7 @@ impl Result {
     ///
     /// * `clarity_threshold` - The clarity of _m_ must be greater than this value.
     /// * `clarity_tolerance` - The clarity of _n_ must not be more than this below the clarity of _m_.
-    /// * `period_tolerance` - The relative difference between the lag of _m_ and the distance between _n_ and _m_ must be greater than this value.
+    /// * `period_tolerance` - The relative difference between the lag of _m_ and the lag difference between _n_ and _m_ must be greater than this value.
     pub fn is_tone_with_options(
         &self,
         clarity_threshold: f32,

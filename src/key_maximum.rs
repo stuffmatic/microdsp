@@ -13,7 +13,7 @@ pub struct KeyMaximum {
 }
 
 impl KeyMaximum {
-    pub fn new() -> KeyMaximum {
+    pub(crate) fn new() -> KeyMaximum {
         KeyMaximum {
             lag_index: 0,
             value_at_lag_index: 0.0,
@@ -22,7 +22,7 @@ impl KeyMaximum {
         }
     }
 
-    pub fn set(&mut self, nsdf: &[f32], lag_index: usize) {
+    pub(crate) fn set(&mut self, nsdf: &[f32], lag_index: usize) {
         self.lag_index = lag_index;
         let value_at_lag_index = nsdf[lag_index];
         self.value_at_lag_index = value_at_lag_index;
