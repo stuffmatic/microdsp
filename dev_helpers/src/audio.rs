@@ -27,7 +27,7 @@ where
     pub fn new<T: AudioProcessor<S> + 'static>(
         sample_rate: f32,
         mut processor: T,
-    ) -> AudioEngine<S> {
+    ) -> Self {
         let queue_capacity = 1000;
         let (to_audio_thread, from_main_thread) = spsc::new::<S>(queue_capacity);
         let (to_main_thread, from_audio_thread) = spsc::new::<S>(queue_capacity);

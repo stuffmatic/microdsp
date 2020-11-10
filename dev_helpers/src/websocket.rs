@@ -40,7 +40,7 @@ pub struct WebsocketServer {
 }
 
 impl WebsocketServer {
-    pub fn new(addr: String) -> WebsocketServer {
+    pub fn new(addr: String) -> Self {
         // A channel for pushing data from the main thread to the websocket for sending
         let (tx_send, rx_send) = unbounded::<MessageType>();
         // A channel for pushing incoming data from the websocket to the main thread

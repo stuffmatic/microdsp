@@ -13,7 +13,7 @@ pub struct KeyMaximum {
 }
 
 impl KeyMaximum {
-    pub(crate) fn new() -> KeyMaximum {
+    pub(crate) fn new() -> Self {
         KeyMaximum {
             lag_index: 0,
             value_at_lag_index: 0.0,
