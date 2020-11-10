@@ -9,12 +9,11 @@ pub struct Detector {
     sample_rate: f32,
     /// The size of the windows to analyze.
     window_size: usize,
-    /// The number of samples that consecutive windows
-    /// have in common, i.e the last `window_overlap` samples of window
-    /// `i` are the same as the first `window_overlap` of window `i + 1`.
-    /// Must be less than `window_size`.
-    window_overlap: usize,
-    window_distance_counter: usize, // TODO: rename?
+    /// The number of samples between consecutive (possibly overlapping)
+    /// windows. Must not be greater than `window_size`.
+    window_distance: usize,
+    /// For counting the number of samples from the start of the previous window.
+    window_distance_counter: usize,
     input_buffer_write_index: usize,
     input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
@@ -22,21 +21,20 @@ pub struct Detector {
 }
 
 impl Detector {
-    pub fn new(sample_rate: f32, window_size: usize, window_overlap: usize) -> Detector {
+    pub fn new(sample_rate: f32, window_size: usize, window_distance: usize) -> Self {
         let lag_count = window_size / 2;
 
         if window_size == 0 {
             panic!("Window size must be greater than 0")
         }
-
-        if window_overlap >= window_size {
-            panic!("Window overlap must be less than window size.")
+        if window_distance > window_size || window_distance <= 0 {
+            panic!("Window distance must be > 0 and <= window_size")
         }
 
         Detector {
             sample_rate,
             window_size,
-            window_overlap,
+            window_distance,
             window_distance_counter: 0,
             input_buffer_write_index: 0,
             input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
@@ -49,7 +47,6 @@ impl Detector {
     where
         F: FnMut(usize, &Result),
     {
-        let window_distance = self.window_size - self.window_overlap;
         for sample_index in 0..samples.len() {
             // Accumulate this sample
             self.input_buffer[self.input_buffer_write_index] = samples[sample_index];
@@ -76,7 +73,8 @@ impl Detector {
                     // Perform pitch detection
                     self.result.compute(self.sample_rate as f32);
                 }
-                self.window_distance_counter = (self.window_distance_counter + 1) % window_distance;
+                self.window_distance_counter =
+                    (self.window_distance_counter + 1) % self.window_distance;
                 if should_process_window {
                     result_handler(sample_index + 1, &self.result);
                 }
@@ -94,7 +92,7 @@ mod tests {
     #[test]
     fn test_sine_detection() {
         let window_size = 1024;
-        let window_overlap = 512;
+        let window_distance = 512;
         let f: f32 = 467.0;
         let sample_rate: f32 = 44100.0;
         let mut window: Vec<f32> = vec![0.0; window_size];
@@ -102,7 +100,7 @@ mod tests {
             let sine_value = (2.0 * std::f32::consts::PI * f * (i as f32) / sample_rate).sin();
             window[i] = sine_value;
         }
-        let mut detector = Detector::new(sample_rate, window_size, window_overlap);
+        let mut detector = Detector::new(sample_rate, window_size, window_distance);
 
         detector.process(&window[..], |sample_offset: usize, result: &Result| {
             assert!((f - result.frequency).abs() <= 0.001);
@@ -122,15 +120,26 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_zero_window_distance() {
+        Detector::new(44100.0, 10, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_too_large_window_distance() {
+        Detector::new(44100.0, 10, 11);
+    }
+
+    #[test]
     fn test_windowing() {
         run_windowing_test(10, 4);
-        run_windowing_test(10, 0);
+        run_windowing_test(10, 10);
         run_windowing_test(10, 1);
     }
 
-    fn run_windowing_test(window_size: usize, window_overlap: usize) {
+    fn run_windowing_test(window_size: usize, window_distance: usize) {
         let mut buffer: Vec<f32> = vec![0.0; 2 * window_size];
-        let window_distance = window_size - window_overlap;
         for i in 0..buffer.len() {
             let is_start_of_window = i % window_distance == 0;
             let window_index = i / window_distance;
@@ -142,7 +151,7 @@ mod tests {
             buffer[i] = value as f32;
         }
 
-        let mut detector = Detector::new(44100.0, window_size, window_overlap);
+        let mut detector = Detector::new(44100.0, window_size, window_distance);
 
         // Verify that the buffer to process in callback i starts with the value i
         let mut result_count = 0;

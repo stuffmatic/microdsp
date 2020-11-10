@@ -17,8 +17,8 @@
 //! // Create a pitch detector instance
 //! let sample_rate = 44100.0;
 //! let window_size = 512; // The number of samples to perform pitch detection on.
-//! let window_overlap = 128; // Pitch is computed every window_size - window_overlap samples
-//! let mut detector = Detector::new(sample_rate, window_size, window_overlap);
+//! let window_distance = 128; // Pitch is computed every window_distance samples
+//! let mut detector = Detector::new(sample_rate, window_size, window_distance);
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
 //! let mut chunk: Vec<f32> = vec![0.0; 10000];

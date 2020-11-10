@@ -31,7 +31,7 @@ pub struct Result {
 }
 
 impl Result {
-    pub fn new(window_size: usize, lag_count: usize) -> Result {
+    pub fn new(window_size: usize, lag_count: usize) -> Self {
         // Allocate buffers
         let window = (vec![0.0; window_size]).into_boxed_slice();
         let nsdf = (vec![0.0; lag_count]).into_boxed_slice();
