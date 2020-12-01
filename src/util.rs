@@ -99,9 +99,7 @@ pub fn autocorr_fft(
     validate_window_size_lag_count(window.len(), lag_count);
 
     // Build FFT input signal
-    for (i, sample) in window.iter().enumerate() {
-        result[i] = *sample;
-    }
+    result[..window.len()].copy_from_slice(&window[..]);
     for i in window.len()..fft_size {
         result[i] = 0.0;
     }
@@ -109,13 +107,13 @@ pub fn autocorr_fft(
     // Perform the FFT in place
     let fft = real_fft_in_place(&mut result[..]);
 
-    scratch_buffer[0] = fft[0].re * fft[0].re;
-
     // Compute the power spectral density by point-wise multiplication by the complex conjugate.
+    scratch_buffer[0] = fft[0].re * fft[0].re;
+    let scratch_buffer_length = scratch_buffer.len();
     for (index, fft_value) in fft.iter_mut().skip(1).enumerate() {
         let norm_sq = fft_value.norm_sqr();
         scratch_buffer[index + 1] = norm_sq;
-        scratch_buffer[scratch_buffer.len() - index - 1] = norm_sq;
+        scratch_buffer[scratch_buffer_length - index - 1] = norm_sq;
     }
     scratch_buffer[fft.len()] = fft[0].im * fft[0].im;
 
