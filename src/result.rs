@@ -27,7 +27,8 @@ pub struct Result {
     /// The index into `key_maxima` of the selected key maximum
     pub selected_key_max_index: usize,
     ///
-    r_prime: Box<[microfft::Complex32]>,
+    r_prime: Box<[f32]>,
+    scratch_buffer: Box<[f32]>,
 }
 
 impl Result {
@@ -36,7 +37,12 @@ impl Result {
         let window = (vec![0.0; window_size]).into_boxed_slice();
         let nsdf = (vec![0.0; lag_count]).into_boxed_slice();
         let r_prime = (vec![
-            microfft::Complex32::new(0.0, 0.0);
+            0.0;
+            util::autocorr_fft_size(window_size, lag_count)
+        ])
+        .into_boxed_slice();
+        let scratch_buffer = (vec![
+            0.0;
             util::autocorr_fft_size(window_size, lag_count)
         ])
         .into_boxed_slice();
@@ -49,6 +55,7 @@ impl Result {
             window,
             nsdf,
             r_prime,
+            scratch_buffer,
             key_max_count: 0,
             key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
             selected_key_max_index: 0,
@@ -307,11 +314,17 @@ impl Result {
         let window = &self.window[..];
         let nsdf = &mut self.nsdf[..];
         let mut r_prime = &mut self.r_prime[..];
+        let mut scratch_buffer = &mut self.scratch_buffer[..];
 
-        util::autocorr_fft(&self.window[..], &mut r_prime, nsdf.len());
+        util::autocorr_fft(
+            &self.window[..],
+            &mut r_prime,
+            &mut scratch_buffer,
+            nsdf.len()
+        );
 
         // Compute m' and store it in the nsdf buffer
-        let autocorr_at_lag_0 = r_prime[0].re;
+        let autocorr_at_lag_0 = r_prime[0];
         util::m_prime_incremental(window, autocorr_at_lag_0, nsdf);
 
         // Compute the NSDF as 2 * r' / m'
@@ -320,7 +333,7 @@ impl Result {
             nsdf[i] = if denominator.abs() <= f32::EPSILON {
                 0.0
             } else {
-                2.0 * r_prime[i].re / denominator
+                2.0 * r_prime[i] / denominator
             };
         }
     }

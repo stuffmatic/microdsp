@@ -32,7 +32,7 @@ pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
     validate_window_size_lag_count(window_size, lag_count);
 
     let min_length = window_size + lag_count - 1;
-    let mut result: usize = 16; // Start at microfft's minimum size
+    let mut result: usize = 8; // Start at microfft's minimum size
     while result < min_length {
         result = result << 1;
     }
@@ -40,41 +40,49 @@ pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
 }
 
 /// Performs an in-place FFT on a given buffer.
-pub fn fft_in_place(buffer: &mut [microfft::Complex32]) {
+pub fn fft_in_place(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
     let fft_size = buffer.len();
     match fft_size {
+        8 => {
+            microfft::real::rfft_8(buffer)
+        }
         16 => {
-            let _ = microfft::complex::cfft_16(buffer);
+            microfft::real::rfft_16(buffer)
         }
         32 => {
-            let _ = microfft::complex::cfft_32(buffer);
+            microfft::real::rfft_16(buffer)
         }
         64 => {
-            let _ = microfft::complex::cfft_64(buffer);
+            microfft::real::rfft_64(buffer)
         }
         128 => {
-            let _ = microfft::complex::cfft_128(buffer);
+            microfft::real::rfft_128(buffer)
         }
         256 => {
-            let _ = microfft::complex::cfft_256(buffer);
+            microfft::real::rfft_256(buffer)
         }
         512 => {
-            let _ = microfft::complex::cfft_512(buffer);
+            microfft::real::rfft_512(buffer)
         }
         1024 => {
-            let _ = microfft::complex::cfft_1024(buffer);
+            microfft::real::rfft_1024(buffer)
         }
         2048 => {
-            let _ = microfft::complex::cfft_2048(buffer);
+            microfft::real::rfft_2048(buffer)
         }
         4096 => {
-            let _ = microfft::complex::cfft_4096(buffer);
+            microfft::real::rfft_4096(buffer)
         }
         _ => panic!("Unsupported fft size {}", fft_size),
     }
 }
 
-pub fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_count: usize) {
+pub fn autocorr_fft(
+    window: &[f32],
+    result: &mut [f32],
+    scratch_buffer: &mut [f32],
+    lag_count: usize
+) {
     // Sanity checks
     let fft_size = autocorr_fft_size(window.len(), lag_count);
     if result.len() != fft_size {
@@ -84,41 +92,42 @@ pub fn autocorr_fft(window: &[f32], result: &mut [microfft::Complex32], lag_coun
             fft_size
         )
     }
+    if scratch_buffer.len() < result.len()  {
+        panic!("Autocorr fft scatch buffer must not be shorter than result buffer")
+    }
 
     validate_window_size_lag_count(window.len(), lag_count);
 
-    // TODO: exploit the fact that the signals are real-only.
-
     // Build FFT input signal
     for (i, sample) in window.iter().enumerate() {
-        result[i].re = *sample;
-        result[i].im = 0.0;
+        result[i] = *sample;
     }
     for i in window.len()..fft_size {
-        result[i].re = 0.0;
-        result[i].im = 0.0;
+        result[i] = 0.0;
     }
 
     // Perform the FFT in place
-    fft_in_place(&mut result[..]);
+    let fft = fft_in_place(&mut result[..]);
 
     // Compute the power spectral density by point-wise multiplication by the complex conjugate.
-    for sample in result.iter_mut() {
-        sample.re = sample.re * sample.re + sample.im * sample.im;
-        sample.im = 0.0;
+    for (index, fft_value) in fft.iter_mut().enumerate() {
+        let norm_sq  = if index == 0 { fft_value.re * fft_value.re } else { fft_value.norm_sqr() };
+        scratch_buffer[index] = norm_sq;
+        if index > 0 {
+            scratch_buffer[scratch_buffer.len() - index] = norm_sq;
+        }
     }
+    scratch_buffer[fft.len()] = fft[0].im * fft[0].im;
 
-    // Perform an inverse FFT to get the autocorrelation. This is done in two steps:
-    // 1. Reorder the power spectral density
-    result[1..].reverse();
-    // 2. Compute the FFT in place, which thanks to the reordering above becomes the inverse FFT (up to a scale)
-    fft_in_place(&mut result[..]);
+
+    // 2. Compute the FFT in place to get the autocorrelation,
+    // which thanks to the reordering above becomes the inverse FFT (up to a scale)
+    let ifft = fft_in_place(&mut scratch_buffer[..]);
 
     // Apply scaling factor
     let scale = 1.0 / (fft_size as f32);
     for i in 0..lag_count {
-        result[i].re = scale * result[i].re;
-        result[i].im = scale * result[i].re;
+        result[i] = scale * ifft[i].re;
     }
 }
 
@@ -223,13 +232,15 @@ mod tests {
         autocorr_sum(&window[..], &mut autocorr_reference[..]);
 
         let fft_size = autocorr_fft_size(window.len(), lag_count);
-        let mut fft_buffer: Vec<microfft::Complex32> =
-            vec![microfft::Complex32::new(0.0, 0.0); fft_size];
-        autocorr_fft(&window[..], &mut fft_buffer[..], lag_count);
+        let mut fft_buffer: Vec<f32> =
+            vec![0.0; fft_size];
+        let mut scratch_buffer: Vec<f32> =
+            vec![0.0; fft_size];
+        autocorr_fft(&window[..], &mut fft_buffer[..], &mut scratch_buffer[..], lag_count);
 
         let epsilon = 1e-4;
         for (reference, fft_value) in autocorr_reference.iter().zip(fft_buffer.iter()) {
-            assert!((*reference - fft_value.re).abs() <= epsilon);
+            assert!((*reference - fft_value).abs() <= epsilon);
         }
     }
 }

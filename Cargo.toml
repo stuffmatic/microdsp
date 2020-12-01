@@ -22,4 +22,4 @@ name = "result"
 harness = false
 
 [dependencies]
-microfft = "0.3.1"
+microfft = { path = "../microfft-rs"}
