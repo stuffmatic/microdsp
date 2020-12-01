@@ -9,7 +9,7 @@
 //! * Suitable for real time audio use - only allocates a modest amount of memory on initialization.
 //!
 //! # Examples
-//! ## High level API (recommended)
+//! ## High level API
 //! Handles collecting input samples into possibly overlapping windows and processing each newly filled window.
 //! ```
 //! use mpm_pitch::Detector;
@@ -39,25 +39,26 @@
 //! });
 //! ```
 //! ## Low level API
-//! Used to process a window directly. Useful for profiling and testing or if you want roll your own window handling.
+//! Used to process a window directly. Useful if you want to roll your own window handling.
 //! ```
 //! use mpm_pitch::Result;
 //!
-//! // Create an instance of PitchDetectionResult
+//! // Create a Result instance
 //! let sample_rate = 44100.0;
+//! let sine_frequency = 440.0;
 //! let window_size = 512;
 //! let lag_count = 256;
 //! let mut result = Result::new(window_size, lag_count);
 //!
 //! // Fill the window to process with a pure tone at 440 Hz.
 //! for i in 0..window_size {
-//!     let sine_value = (2.0 * std::f32::consts::PI * 440.0 * (i as f32) / sample_rate).sin();
+//!     let sine_value = (2.0 * std::f32::consts::PI * sine_frequency * (i as f32) / sample_rate).sin();
 //!     result.window[i] = sine_value;
 //! }
 //!
 //! // Perform pitch detection
 //! result.compute(sample_rate);
-//! println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
+//! println!("Expected frequency {}, Detected frequency {} Hz, clarity {}", sine_frequency, result.frequency, result.clarity);
 //! ```
 
 mod detector;
