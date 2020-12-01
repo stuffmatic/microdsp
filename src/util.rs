@@ -40,7 +40,7 @@ pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
 }
 
 /// Performs an in-place FFT on a given buffer.
-pub fn fft_in_place(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
+pub fn real_fft_in_place(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
     let fft_size = buffer.len();
     match fft_size {
         8 => {
@@ -107,22 +107,20 @@ pub fn autocorr_fft(
     }
 
     // Perform the FFT in place
-    let fft = fft_in_place(&mut result[..]);
+    let fft = real_fft_in_place(&mut result[..]);
+
+    scratch_buffer[0] = fft[0].re * fft[0].re;
 
     // Compute the power spectral density by point-wise multiplication by the complex conjugate.
-    for (index, fft_value) in fft.iter_mut().enumerate() {
-        let norm_sq  = if index == 0 { fft_value.re * fft_value.re } else { fft_value.norm_sqr() };
-        scratch_buffer[index] = norm_sq;
-        if index > 0 {
-            scratch_buffer[scratch_buffer.len() - index] = norm_sq;
-        }
+    for (index, fft_value) in fft.iter_mut().skip(1).enumerate() {
+        let norm_sq = fft_value.norm_sqr();
+        scratch_buffer[index + 1] = norm_sq;
+        scratch_buffer[scratch_buffer.len() - index - 1] = norm_sq;
     }
     scratch_buffer[fft.len()] = fft[0].im * fft[0].im;
 
-
-    // 2. Compute the FFT in place to get the autocorrelation,
-    // which thanks to the reordering above becomes the inverse FFT (up to a scale)
-    let ifft = fft_in_place(&mut scratch_buffer[..]);
+    // 2. Compute the inverse FFT in place to get the autocorrelation (up to a scaling factor)
+    let ifft = real_fft_in_place(&mut scratch_buffer[..]);
 
     // Apply scaling factor
     let scale = 1.0 / (fft_size as f32);
