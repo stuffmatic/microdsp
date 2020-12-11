@@ -1,12 +1,12 @@
-//! A rust implementation of the MPM (McLeod Pitch Method) [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection algorithm.
-//! The algorithm is used for detecting pitch in monophonic, primarily musical, sounds. It
+//! A rust implementation of the MPM [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection algorithm,
+//! described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf)
+//! by Philip McLeod and Geoff Wyvill. The algorithm is used for detecting pitch in monophonic, primarily musical, sounds. It
 //! cannot be used to detect multiple pitches at once, like in a musical chord.
-//! The algorithm is described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf)
-//! by Philip McLeod and Geoff Wyvill.
 //!
-//! * Reasonably performant - implements the optimizations suggested in the paper,
-//! including FFT based autocorrelation computation.
-//! * Suitable for real time audio use - only allocates a modest amount of memory on initialization.
+//! The implementation is reasonably performant and suitable for real time use:
+//! * No memory is allocated apart from a modest amount on initialization.
+//! * Autocorrelation is computed using FFT.
+//! * Computation of the NSDF is accelerated using the incremental scheme described in the paper.
 //!
 //! # Examples
 //! ## High level API
@@ -21,9 +21,10 @@
 //! let mut detector = Detector::new(sample_rate, window_size, window_distance);
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
+//! let sine_frequency = 440.0;
 //! let mut chunk: Vec<f32> = vec![0.0; 10000];
 //! for i in 0..chunk.len() {
-//!     let sine_value = (2.0 * std::f32::consts::PI * 440.0 * (i as f32) / sample_rate).sin();
+//!     let sine_value = (2.0 * std::f32::consts::PI * sine_frequency * (i as f32) / sample_rate).sin();
 //!     chunk[i] = sine_value;
 //! }
 //!
@@ -33,8 +34,11 @@
 //!     let time_s = sample_rate * (sample_index as f32);
 //!     if result.is_tone() {
 //!         println!("t = {} s, Frequency {} Hz, clarity {}", time_s, result.frequency, result.clarity);
+//!         assert!((sine_frequency - result.frequency).abs() <= 0.01);
 //!     } else {
-//!         // No discernable pitch detected.
+//!         // No discernable pitch detected. Should not end up here, since
+//!         // the input signal is a purse tone.
+//!         assert!(false);
 //!     }
 //! });
 //! ```
@@ -59,7 +63,23 @@
 //! // Perform pitch detection
 //! result.compute(sample_rate);
 //! println!("Expected frequency {}, Detected frequency {} Hz, clarity {}", sine_frequency, result.frequency, result.clarity);
+//! assert!((sine_frequency - result.frequency).abs() <= 0.01);
 //! ```
+//! # A note on clarity and false positives
+//! The result from the MPM algorithm includes a normalized clarity value,
+//! which is a number between zero and one that indicates to what degree
+//! an input signal is a pure tone. The clarity is defined as the value of the
+//! normalized square difference function (NSDF) at the peak assumed to
+//! correspond to the pitch period. However, noisy non-tonal input may
+//! give rise to occasional large NSDF peaks, which means that for a single window,
+//! looking at the clarity value alone is not enough to tell whether
+//! the input signal has a discernable fundamental frequency.
+//!
+//! An input signal with a strong fundamental frequency will result
+//! in a number of NSDF maxima, the distance between which corresponds to the
+//! fundamental period. If this is not the case, a result can be safely categorized
+//! as non-tonal. This check is implemented in the [is_tone](struct.Result.html#method.is_tone)
+//! method.
 
 mod detector;
 mod key_maximum;
