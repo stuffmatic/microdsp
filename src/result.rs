@@ -12,7 +12,7 @@ pub struct Result {
     /// close to 0 indicate lack of a discernable pitch.
     pub clarity: f32,
     /// The [MIDI note number](https://newt.phys.unsw.edu.au/jw/notes.html) corresponding to the pitch frequency.
-    pub note_number: f32,
+    pub midi_note_number: f32,
     /// The estimated pitch period in samples.
     pub pitch_period: f32,
     /// The analyzed window.
@@ -45,7 +45,7 @@ impl Result {
         Result {
             frequency: 0.0,
             clarity: 0.0,
-            note_number: 0.0,
+            midi_note_number: 0.0,
             window,
             nsdf,
             r_prime,
@@ -204,7 +204,7 @@ impl Result {
     fn reset(&mut self) {
         self.frequency = 0.0;
         self.clarity = 0.0;
-        self.note_number = 0.0;
+        self.midi_note_number = 0.0;
         self.key_max_count = 0;
         self.selected_key_max_index = 0;
         self.pitch_period = 0.0;
@@ -298,7 +298,7 @@ impl Result {
 
             let pitch_period = self.pitch_period / sample_rate;
             self.frequency = 1.0 / pitch_period;
-            self.note_number = util::freq_to_midi_note(self.frequency);
+            self.midi_note_number = util::freq_to_midi_note(self.frequency);
         }
     }
 
