@@ -126,7 +126,7 @@ impl Result {
     ///
     /// * `clarity_threshold` - The clarity of _m_ must be greater than this value.
     /// * `clarity_tolerance` - The clarity of _n_ must not be more than this below the clarity of _m_.
-    /// * `period_tolerance` - The relative difference between the lag of _m_ and the lag difference between _n_ and _m_ must be greater than this value.
+    /// * `period_tolerance` - The relative difference between the lag of _m_ and the lag difference between _n_ and _m_ must not be greater than this value.
     pub fn is_tone_with_options(
         &self,
         clarity_threshold: f32,

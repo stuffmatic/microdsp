@@ -3,7 +3,7 @@ use std::vec;
 use crate::result::Result;
 
 /// Handles collecting input samples into (possibly overlapping) windows
-/// and performs pitch detection on each newly filled window.
+/// and performing pitch detection on each newly filled window.
 pub struct Detector {
     /// The audio sample rate in Hz.
     sample_rate: f32,
@@ -92,7 +92,8 @@ impl Detector {
         &self.result
     }
 
-    /// Returns the current number of processed windows.
+    /// Returns the number of processed windows since the
+    /// detector was created.
     pub fn processed_window_count(&self) -> usize {
         self.processed_window_count
     }
