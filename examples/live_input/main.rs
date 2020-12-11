@@ -10,7 +10,7 @@ use crossbeam_queue::spsc;
 use mpm_pitch::Detector;
 
 struct PitchReading {
-    note_number: f32,
+    midi_note_number: f32,
     frequency: f32,
 }
 
@@ -39,7 +39,7 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
             .process(in_buffer, |sample_index, result| {
                 if result.is_tone() {
                     let push_result = to_main_thread.push(PitchReading {
-                        note_number: result.note_number,
+                        midi_note_number: result.midi_note_number,
                         frequency: result.frequency,
                     });
                 }
@@ -70,7 +70,7 @@ fn main() {
                 }
                 Ok(reading) => println!(
                     "{} | {:.2} Hz",
-                    note_number_to_string(reading.note_number),
+                    note_number_to_string(reading.midi_note_number),
                     reading.frequency
                 ),
             }

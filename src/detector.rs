@@ -14,6 +14,7 @@ pub struct Detector {
     window_distance: usize,
     /// For counting the number of samples from the start of the previous window.
     window_distance_counter: usize,
+    processed_window_count: usize,
     input_buffer_write_index: usize,
     input_buffer: Box<[f32]>,
     has_filled_input_buffer: bool,
@@ -36,6 +37,7 @@ impl Detector {
             window_size,
             window_distance,
             window_distance_counter: 0,
+            processed_window_count: 0,
             input_buffer_write_index: 0,
             input_buffer: (vec![0.0; window_size]).into_boxed_slice(),
             has_filled_input_buffer: false,
@@ -72,6 +74,7 @@ impl Detector {
 
                     // Perform pitch detection
                     self.result.compute(self.sample_rate as f32);
+                    self.processed_window_count += 1;
                 }
                 self.window_distance_counter =
                     (self.window_distance_counter + 1) % self.window_distance;
@@ -82,6 +85,36 @@ impl Detector {
         }
 
         false
+    }
+
+    /// Returns the most recently computed pitch detection result.
+    pub fn result(&self) -> &Result {
+        &self.result
+    }
+
+    /// Returns the current number of processed windows.
+    pub fn processed_window_count(&self) -> usize {
+        self.processed_window_count
+    }
+
+    /// Returns the fixed number of samples in a window.
+    pub fn window_size(&self) -> usize {
+        self.window_size
+    }
+
+    /// Returns the number of samples between windows.
+    pub fn window_distance(&self) -> usize {
+        self.window_size
+    }
+
+    /// Returns the current sample rate in Hz.
+    pub fn sample_rate(&self) -> f32 {
+        self.sample_rate
+    }
+
+    /// Sets the sample rate in Hz.
+    pub fn set_sample_rate(&mut self, sample_rate: f32) {
+        self.sample_rate = sample_rate;
     }
 }
 
