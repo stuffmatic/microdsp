@@ -329,8 +329,6 @@ impl Result {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand_pcg::Pcg64;
-    use rand_seeder;
 
     #[test]
     fn test_silence() {
