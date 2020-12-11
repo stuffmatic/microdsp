@@ -1,2 +1,2 @@
-* real-only FFT
-* equal loudness filter
+* high pass filter?
+* fix warnings
