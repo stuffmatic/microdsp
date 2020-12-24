@@ -15,6 +15,7 @@
 //! use mpm_pitch::Detector;
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
+//! let sample_rate = 44100.0;
 //! let sine_frequency = 440.0;
 //! let mut chunk: Vec<f32> = vec![0.0; 10000];
 //! for i in 0..chunk.len() {
@@ -23,7 +24,6 @@
 //! }
 //!
 //! // Create a pitch detector instance
-//! let sample_rate = 44100.0;
 //! let window_size = 512; // The number of samples to perform pitch detection on.
 //! let window_distance = 128; // Pitch is computed every window_distance samples
 //! let mut detector = Detector::new(sample_rate, window_size, window_distance);
@@ -84,6 +84,9 @@
 //! as non-tonal. This check is implemented in the [is_tone](struct.Result.html#method.is_tone)
 //! method, which is the recommended way to determine if the input signal has a
 //! strong fundamental frequency.
+
+#![no_std]
+extern crate alloc;
 
 mod detector;
 mod key_maximum;

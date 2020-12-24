@@ -130,6 +130,8 @@ pub fn autocorr_fft(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::alloc::vec::Vec;
+    use crate::alloc::vec;
 
     /// Computes the autocorrelation as a naive inefficient summation.
     /// Only used for testing purposes.

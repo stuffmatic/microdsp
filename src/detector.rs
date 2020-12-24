@@ -1,5 +1,6 @@
-use std::vec;
-
+use crate::alloc::vec;
+use crate::alloc::boxed::Box;
+use crate::alloc::vec::Vec;
 use crate::result::Result;
 
 /// Handles collecting input samples into (possibly overlapping) windows
@@ -131,7 +132,7 @@ mod tests {
         let sample_rate: f32 = 44100.0;
         let mut window: Vec<f32> = vec![0.0; window_size];
         for i in 0..window_size {
-            let sine_value = (2.0 * std::f32::consts::PI * f * (i as f32) / sample_rate).sin();
+            let sine_value = (2.0 * core::f32::consts::PI * f * (i as f32) / sample_rate).sin();
             window[i] = sine_value;
         }
         let mut detector = Detector::new(sample_rate, window_size, window_distance);
