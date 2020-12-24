@@ -38,6 +38,23 @@ impl PitchReadingKeyMax {
 
 const MAX_KEY_MAXIMA_COUNT: usize = 64;
 
+#[derive(Copy, Clone, Serialize)]
+struct PitchDetectorSettings {
+    clarity_threshold: f32,
+    clarity_tolerance: f32,
+    period_tolerance: f32
+}
+
+impl PitchDetectorSettings {
+    fn new() -> Self {
+        PitchDetectorSettings {
+            clarity_threshold: 0.9,
+            clarity_tolerance: 0.9,
+            period_tolerance: 0.9
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct PitchReadingInfo {
     window_size: usize,
@@ -48,6 +65,7 @@ struct PitchReadingInfo {
     window_rms: f32,
     window_peak: f32,
     is_tone: bool,
+    detector_settings: PitchDetectorSettings,
     note_info: Option<String>,
     #[serde(serialize_with = "<[_]>::serialize")]
     nsdf: [f32; MAX_NSDF_SIZE],
@@ -61,7 +79,7 @@ struct PitchReadingInfo {
 }
 
 impl PitchReadingInfo {
-    fn new(timestamp: f32, result: &Result) -> PitchReadingInfo {
+    fn new(timestamp: f32, result: &Result, detector_settings: PitchDetectorSettings) -> Self {
         let mut nsdf = [0.0_f32; MAX_NSDF_SIZE];
         for (i, val) in result.nsdf.iter().enumerate() {
             if i >= MAX_NSDF_SIZE {
@@ -69,12 +87,6 @@ impl PitchReadingInfo {
             }
             nsdf[i] = *val;
         }
-        let def = PitchReadingKeyMax {
-            lag_index: 0,
-            lag: 0.,
-            value_at_lag_index: 0.,
-            value: 0.,
-        };
         let mut key_maxima_ser = [PitchReadingKeyMax::new(); MAX_KEY_MAXIMA_COUNT];
         for (i, val) in result.key_maxima.iter().enumerate() {
             key_maxima_ser[i] = PitchReadingKeyMax {
@@ -93,7 +105,8 @@ impl PitchReadingInfo {
             frequency: result.frequency,
             clarity: result.clarity,
             is_tone,
-            note_number: result.note_number,
+            detector_settings,
+            note_number: result.midi_note_number,
             window_rms: result.window_rms(),
             window_peak: result.window_peak(),
             selected_key_max_index: result.selected_key_max_index,
@@ -103,7 +116,7 @@ impl PitchReadingInfo {
             key_maxima: result.key_maxima,
             key_maxima_ser,
             note_info: if is_tone {
-                Some(note_number_to_string(result.note_number))
+                Some(note_number_to_string(result.midi_note_number))
             } else {
                 None
             },
@@ -113,12 +126,14 @@ impl PitchReadingInfo {
 
 enum MPMAudioProcessorMessage {
     DetectedPitch { info: PitchReadingInfo },
+    SetDetectorSettings { settings: PitchDetectorSettings }
 }
 
 struct MPMAudioProcessor {
     processed_sample_count: usize,
     sample_rate: f32,
     pitch_detector: Detector,
+    detector_settings: PitchDetectorSettings
 }
 
 impl MPMAudioProcessor {
@@ -127,6 +142,7 @@ impl MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
             pitch_detector: Detector::new(sample_rate, 1024, 3 * 256),
+            detector_settings: PitchDetectorSettings::new()
         }
     }
 }
@@ -142,12 +158,13 @@ impl AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
     ) -> bool {
         let processed_sample_count = self.processed_sample_count;
         let sample_rate = self.sample_rate;
+        let detector_settings = self.detector_settings;
         self.pitch_detector
             .process(in_buffer, |sample_index, result| {
                 let timestamp = ((processed_sample_count + sample_index) as f32) / sample_rate;
 
                 let message = MPMAudioProcessorMessage::DetectedPitch {
-                    info: PitchReadingInfo::new(timestamp, result),
+                    info: PitchReadingInfo::new(timestamp, result, detector_settings),
                 };
                 let push_result = to_main_thread.push(message);
             });
@@ -174,6 +191,8 @@ fn main() {
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
     println!("Open index.html in a web browser");
 
+
+
     loop {
         thread::sleep(Duration::from_millis(poll_interval_ms));
 
@@ -199,7 +218,8 @@ fn main() {
                 Ok(message) => match message {
                     MPMAudioProcessorMessage::DetectedPitch { info } => {
                         received_pitch_readings.push(info);
-                    }
+                    },
+                    _ => {}
                 },
             }
         }
