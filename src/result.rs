@@ -368,7 +368,7 @@ mod tests {
             // Generate a pure tone and perform pitch detection
             let mut result = Result::new(window_size, lag_count);
             for i in 0..window_size {
-                let sine_value = (2.0 * std::f32::consts::PI * f * (i as f32) / sample_rate).sin();
+                let sine_value = (2.0 * core::f32::consts::PI * f * (i as f32) / sample_rate).sin();
                 result.window[i] = sine_value;
             }
 

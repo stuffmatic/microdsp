@@ -29,8 +29,8 @@ impl KeyMaximum {
 
         // Use parabolic interpolation to approximate
         // the true maximum using the left and right neighbors
-        let left_index = std::cmp::max(0, lag_index - 1);
-        let right_index = std::cmp::min(nsdf.len() - 1, lag_index + 1);
+        let left_index = core::cmp::max(0, lag_index - 1);
+        let right_index = core::cmp::min(nsdf.len() - 1, lag_index + 1);
         let left = nsdf[left_index];
         let right = nsdf[right_index];
 
