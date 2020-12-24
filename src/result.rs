@@ -8,8 +8,10 @@ pub struct Result {
     /// The estimated pitch frequency in Hz.
     pub frequency: f32,
     /// The value of the NSDF at the maximum corresponding to the pitch period.
-    /// Between 0 and 1 (inclusive). Values close to 1 indicate pure tones and values
-    /// close to 0 indicate lack of a discernable pitch.
+    /// Between 0 and 1 (inclusive). Pure tones have a value close to 1. Note
+    /// that non-tonal input may also result in occasional clarity peaks. For
+    /// a more robust way of differentiating between tonal and non-tonal input,
+    /// see `is_tone`.
     pub clarity: f32,
     /// The [MIDI note number](https://newt.phys.unsw.edu.au/jw/notes.html) corresponding to the pitch frequency.
     pub midi_note_number: f32,

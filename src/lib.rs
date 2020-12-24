@@ -14,12 +14,6 @@
 //! ```
 //! use mpm_pitch::Detector;
 //!
-//! // Create a pitch detector instance
-//! let sample_rate = 44100.0;
-//! let window_size = 512; // The number of samples to perform pitch detection on.
-//! let window_distance = 128; // Pitch is computed every window_distance samples
-//! let mut detector = Detector::new(sample_rate, window_size, window_distance);
-//!
 //! // Create an input buffer containing a pure tone at 440 Hz.
 //! let sine_frequency = 440.0;
 //! let mut chunk: Vec<f32> = vec![0.0; 10000];
@@ -27,6 +21,12 @@
 //!     let sine_value = (2.0 * std::f32::consts::PI * sine_frequency * (i as f32) / sample_rate).sin();
 //!     chunk[i] = sine_value;
 //! }
+//!
+//! // Create a pitch detector instance
+//! let sample_rate = 44100.0;
+//! let window_size = 512; // The number of samples to perform pitch detection on.
+//! let window_distance = 128; // Pitch is computed every window_distance samples
+//! let mut detector = Detector::new(sample_rate, window_size, window_distance);
 //!
 //! // Perform pitch detection. The detector extracts and processes windows and
 //! // invokes the provided callback when a new window has been analyzed.
@@ -37,7 +37,7 @@
 //!         assert!((sine_frequency - result.frequency).abs() <= 0.01);
 //!     } else {
 //!         // No discernable pitch detected. Should not end up here, since
-//!         // the input signal is a purse tone.
+//!         // the input signal is a pure tone.
 //!         assert!(false);
 //!     }
 //! });
@@ -66,6 +66,9 @@
 //! assert!((sine_frequency - result.frequency).abs() <= 0.01);
 //! ```
 //! # A note on clarity and false positives
+//! TL;DR: Use the [is_tone](struct.Result.html#method.is_tone) method to check if
+//! the input signal is a tone, i.e has a strong fundamental frequency.
+//!
 //! The result from the MPM algorithm includes a normalized clarity value,
 //! which is a number between zero and one that indicates to what degree
 //! an input signal is a pure tone. The clarity is defined as the value of the
@@ -76,10 +79,11 @@
 //! the input signal has a discernable fundamental frequency.
 //!
 //! An input signal with a strong fundamental frequency will result
-//! in a number of NSDF maxima, the distance between which corresponds to the
-//! fundamental period. If this is not the case, a result can be safely categorized
+//! in a number of equispaced NSDF maxima, the distance between which corresponds to the
+//! fundamental period. If no such maxima exist, a result can be safely categorized
 //! as non-tonal. This check is implemented in the [is_tone](struct.Result.html#method.is_tone)
-//! method.
+//! method, which is the recommended way to determine if the input signal has a
+//! strong fundamental frequency.
 
 mod detector;
 mod key_maximum;
