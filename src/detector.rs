@@ -143,12 +143,6 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_invalid_overlap() {
-        Detector::new(44100.0, 100, 101);
-    }
-
-    #[test]
-    #[should_panic]
     fn test_zero_window_size() {
         Detector::new(44100.0, 0, 0);
     }
