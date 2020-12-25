@@ -1,6 +1,5 @@
 use crate::alloc::vec;
 use crate::alloc::boxed::Box;
-use crate::alloc::vec::Vec;
 use crate::result::Result;
 
 /// Handles collecting input samples into (possibly overlapping) windows
@@ -123,6 +122,7 @@ impl Detector {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::alloc::vec::Vec;
 
     #[test]
     fn test_sine_detection() {

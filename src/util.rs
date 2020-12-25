@@ -1,5 +1,3 @@
-use micromath::F32Ext;
-
 pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
     if lag_count > window_size {
         panic!("Lag count must not be greater than the window size");
@@ -242,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_autocorr_fft() {
-        // Reference Octave output
+        // Reference Octave output (https://www.gnu.org/software/octave/index)
         // a = [1   2   3   4   5   6   7   8]
         // conv(a, fliplr(a)) = [8    23    44    70   100   133   168   204   168   133   100    70    44   23     8]
         // ifft(abs(fft([a 0 0 0 0])).^2) = [204.000   168.000   133.000   100.000    70.000    52.000 ....
