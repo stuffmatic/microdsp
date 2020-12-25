@@ -1,3 +1,5 @@
+use micromath::F32Ext;
+
 pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
     if lag_count > window_size {
         panic!("Lag count must not be greater than the window size");
@@ -8,7 +10,9 @@ pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
 pub fn freq_to_midi_note(f: f32) -> f32 {
     // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
     // MIDI note 21 is A0 at 27.5 Hz
-    21.0_f32 + (f / 27.5).log10() / (2.0_f32.powf(1.0 / 12.0)).log10()
+
+    let denominator = 0.02508583297199_f32; // Math.log10(Math.pow(2, 1/12))
+    21.0_f32 + micromath::F32Ext::log10(f / 27.5) / denominator
 }
 
 /// Computes m' defined in eq (6), using the incremental subtraction
@@ -180,6 +184,25 @@ mod tests {
     }
 
     #[test]
+    fn text_approximate_note_number() {
+        // The hz to midi note conversion relies on the approximate log10
+        // function of the micromath crate. This test compares this
+        // approximation to std's log10 and makes sure the difference
+        // is acceptable.
+
+        // The maximum acceptable error in cents. 0.1 is 1/1000th of a semitone.
+        let max_cent_error = 0.11_f32;
+        for i in 1..10000 {
+            let f = i as f32;
+            let denominator = 0.02508583297199_f32; // Math.log10(Math.pow(2, 1/12))
+            let actual_note_number = 21.0_f32 + (f / 27.5).log10() / denominator;
+            let approx_note_number = freq_to_midi_note(f);
+            let delta_cents = 100. * (actual_note_number - approx_note_number);
+            assert!(delta_cents.abs() <= max_cent_error);
+        }
+    }
+
+    #[test]
     fn test_midi_note_conversion() {
         // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
 
@@ -191,7 +214,7 @@ mod tests {
         let note_number_a4 = 69.0_f32;
         let f_a4 = 440.0_f32;
         let computed_note_number_a4 = freq_to_midi_note(f_a4);
-        assert!((computed_note_number_a4 - note_number_a4).abs() <= 0.0001);
+        assert!((computed_note_number_a4 - note_number_a4).abs() <= 0.01);
     }
 
     #[test]

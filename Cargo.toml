@@ -21,3 +21,4 @@ harness = false
 
 [dependencies]
 microfft = { path = "../microfft-rs"}
+micromath = "*"
