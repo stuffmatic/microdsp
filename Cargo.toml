@@ -20,5 +20,5 @@ name = "result"
 harness = false
 
 [dependencies]
-microfft = { path = "../microfft-rs"}
+microfft = { git = "https://gitlab.com/ra_kete/microfft-rs", commit = "7dd9b92c"}
 micromath = "*"
