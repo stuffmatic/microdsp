@@ -105,7 +105,7 @@ impl Detector {
 
     /// Returns the number of samples between windows.
     pub fn window_distance(&self) -> usize {
-        self.window_size
+        self.window_distance
     }
 
     /// Returns the current sample rate in Hz.
