@@ -7,6 +7,7 @@
 //! * No memory is allocated apart from a modest amount on initialization.
 //! * Autocorrelation is computed using FFT.
 //! * Computation of the NSDF is accelerated using the incremental scheme described in the paper.
+//! * Downsampling is supported, increasing performance at the expense of frequency resolution.
 //!
 //! # Examples
 //! ## High level API
