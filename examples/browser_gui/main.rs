@@ -85,6 +85,7 @@ impl PitchReadingInfo {
             }
             nsdf[i] = *val;
         }
+
         let mut key_maxima_ser = [PitchReadingKeyMax::new(); MAX_KEY_MAXIMA_COUNT];
         for (i, val) in result.key_maxima.iter().enumerate() {
             key_maxima_ser[i] = PitchReadingKeyMax {
@@ -139,7 +140,7 @@ impl MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: Detector::new(sample_rate, 1024, 3 * 256),
+            pitch_detector: Detector::from_options(sample_rate, 1024, 512, 3 * 256, 8),
             detector_settings: PitchDetectorSettings::new()
         }
     }

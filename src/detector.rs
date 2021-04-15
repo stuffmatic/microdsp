@@ -39,11 +39,12 @@ impl Detector {
             panic!("Downsampling factor must be greater than 0")
         }
         if window_size % downsampling_factor != 0 {
-            panic!("window_size must be divisible by downsampling_factor")
+            panic!("window_size must be evenly divisible by downsampling_factor")
         }
         if window_distance % downsampling_factor != 0 {
-            panic!("window_distance must be divisible by downsampling_factor")
+            panic!("window_distance must be evenly divisible by downsampling_factor")
         }
+
         // TODO: validate lag count
 
         let downsampled_window_size = window_size / downsampling_factor;
@@ -192,11 +193,14 @@ mod tests {
         let window = generate_sine(sample_rate, frequency, window_size);
         let downsampling_factor = 4;
         let mut detector = Detector::from_options(sample_rate, window_size, lag_count, window_distance, downsampling_factor);
+        let downsampled_window_size = detector.downsampled_window_size();
 
         detector.process(&window[..], |sample_offset: usize, result: &Result| {
+            assert!(result.window.len() == downsampled_window_size);
             assert!((frequency - result.frequency).abs() <= 0.05);
         });
         detector.process(&window[..], |sample_offset: usize, result: &Result| {
+            assert!(result.window.len() == downsampled_window_size);
             assert!((frequency - result.frequency).abs() <= 0.05);
         });
     }
