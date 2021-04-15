@@ -104,8 +104,8 @@ pub fn autocorr_fft(
 
     // Build FFT input signal
     result[..window.len()].copy_from_slice(&window[..]);
-    for i in window.len()..fft_size {
-        result[i] = 0.0;
+    for element in result.iter_mut().skip(window.len()) {
+        *element = 0.0
     }
 
     // Perform the FFT in place
