@@ -151,8 +151,8 @@ impl AudioProcessor<MPMAudioProcessorMessage> for MPMAudioProcessor {
         in_buffer: &[f32],
         out_buffer: &mut [f32],
         frame_count: usize,
-        to_main_thread: &spsc::Producer<MPMAudioProcessorMessage>,
-        from_main_thread: &spsc::Consumer<MPMAudioProcessorMessage>,
+        to_main_thread: &mut dev_helpers::rtrb::Producer<MPMAudioProcessorMessage>,
+        from_main_thread: &mut dev_helpers::rtrb::Consumer<MPMAudioProcessorMessage>,
     ) -> bool {
         let processed_sample_count = self.processed_sample_count;
         let sample_rate = self.sample_rate;
@@ -178,7 +178,7 @@ fn main() {
     let sample_rate = 44100.0;
     let processor = MPMAudioProcessor::new(sample_rate);
     // Create an audio engine that provides the processor with real time input samples
-    let audio_engine = AudioEngine::new(sample_rate, processor);
+    let mut audio_engine = AudioEngine::new(sample_rate, processor);
     println!("Started audio engine");
 
     // Create a websocket server for sending pitch measurements to connected clients
