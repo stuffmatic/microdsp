@@ -5,7 +5,6 @@ use dev_helpers::note_number_to_string;
 use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 
-use crossbeam_queue::spsc;
 
 use mpm_pitch::Detector;
 
@@ -32,8 +31,8 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
         in_buffer: &[f32],
         _: &mut [f32],
         _: usize,
-        to_main_thread: &spsc::Producer<PitchReading>,
-        _: &spsc::Consumer<PitchReading>,
+        to_main_thread: &mut dev_helpers::rtrb::Producer<PitchReading>,
+        _: &mut dev_helpers::rtrb::Consumer<PitchReading>,
     ) -> bool {
         self.pitch_detector
             .process(in_buffer, |sample_index, result| {

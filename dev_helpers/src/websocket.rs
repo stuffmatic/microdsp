@@ -3,7 +3,6 @@ use std::thread;
 use ws::{CloseCode, Handler, Handshake, Message, Result, WebSocket};
 
 type MessageType = String;
-
 struct WebSocketHandler {
     tx: crossbeam_channel::Sender<MessageType>,
 }

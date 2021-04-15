@@ -1,5 +1,5 @@
 extern crate portaudio;
-use crossbeam_queue::spsc;
+use rtrb;
 use portaudio as pa;
 
 pub trait AudioProcessor<S> {
@@ -9,15 +9,15 @@ pub trait AudioProcessor<S> {
         in_buffer: &[f32],
         out_buffer: &mut [f32],
         frame_count: usize,
-        to_main_thread: &spsc::Producer<S>,
-        from_main_thread: &spsc::Consumer<S>,
+        to_main_thread: &mut rtrb::Producer<S>,
+        from_main_thread: &mut rtrb::Consumer<S>,
     ) -> bool;
 }
 
 pub struct AudioEngine<S> {
     pa_stream: pa::Stream<pa::NonBlocking, pa::Duplex<f32, f32>>,
-    pub to_audio_thread: spsc::Producer<S>,
-    pub from_audio_thread: spsc::Consumer<S>,
+    pub to_audio_thread: rtrb::Producer<S>,
+    pub from_audio_thread: rtrb::Consumer<S>,
 }
 
 impl<S> AudioEngine<S>
@@ -29,8 +29,8 @@ where
         mut processor: T,
     ) -> Self {
         let queue_capacity = 1000;
-        let (to_audio_thread, from_main_thread) = spsc::new::<S>(queue_capacity);
-        let (to_main_thread, from_audio_thread) = spsc::new::<S>(queue_capacity);
+        let (mut to_audio_thread, mut from_main_thread) = rtrb::RingBuffer::<S>::new(queue_capacity).split();
+        let (mut to_main_thread, mut from_audio_thread) = rtrb::RingBuffer::<S>::new(queue_capacity).split();
         let pa = pa::PortAudio::new().unwrap();
         let default_input = pa.default_input_device().unwrap();
         let default_output = pa.default_output_device().unwrap();
@@ -53,8 +53,8 @@ where
                 in_buffer,
                 out_buffer,
                 frames,
-                &to_main_thread,
-                &from_main_thread,
+                &mut to_main_thread,
+                &mut from_main_thread,
             ) {
                 true => pa::Continue,
                 false => pa::Complete,

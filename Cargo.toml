@@ -12,9 +12,6 @@ dev_helpers = { path = "dev_helpers" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "*"
 
-# TODO: should be encapsulated in dev_helpers?
-crossbeam-queue = { git = "https://github.com/stjepang/crossbeam", branch = "spsc" }
-
 [[bench]]
 name = "result"
 harness = false
