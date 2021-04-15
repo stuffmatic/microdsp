@@ -98,7 +98,7 @@ impl Detector {
                 self.window_distance_counter =
                     (self.window_distance_counter + 1) % self.downsampled_window_distance();
                 if should_process_window {
-                    result_handler(sample_index + 1, &self.result);
+                    result_handler(sample_index + self.downsampling_factor, &self.result);
                 }
             }
         }
@@ -241,12 +241,13 @@ mod tests {
 
     #[test]
     fn test_windowing() {
-        run_windowing_test(10, 4);
-        run_windowing_test(10, 10);
-        run_windowing_test(10, 1);
+        run_windowing_test(10, 4, 1);
+        run_windowing_test(10, 10, 2);
+        run_windowing_test(40, 20, 4);
+        run_windowing_test(10, 1, 1);
     }
 
-    fn run_windowing_test(window_size: usize, window_distance: usize) {
+    fn run_windowing_test(window_size: usize, window_distance: usize, downsampling_factor: usize) {
         let mut buffer: Vec<f32> = vec![0.0; 2 * window_size];
         for i in 0..buffer.len() {
             let is_start_of_window = i % window_distance == 0;
@@ -259,7 +260,7 @@ mod tests {
             buffer[i] = value as f32;
         }
 
-        let mut detector = Detector::new(44100.0, window_size, window_distance);
+        let mut detector = Detector::from_options(44100.0, window_size, window_size / 2, window_distance, downsampling_factor);
 
         // Verify that the buffer to process in callback i starts with the value i
         let mut result_count = 0;
