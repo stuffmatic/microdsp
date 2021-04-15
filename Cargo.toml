@@ -3,6 +3,10 @@ name = "mpm-pitch"
 version = "0.1.0"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
+description = "An implementation of the MPM (McLeod Pitch Method) pitch detection algorithm. Reasonably performant and no_std compatible."
+repository = "https://github.com/stuffmatic/mpm-pitch/"
+license = "MIT"
+categories = ["no-std", "multimedia::audio"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
