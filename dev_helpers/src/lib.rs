@@ -1,10 +1,8 @@
 mod audio;
-mod websocket;
 
 pub use rtrb;
 pub use audio::AudioEngine;
 pub use audio::AudioProcessor;
-pub use websocket::WebsocketServer;
 
 pub fn note_number_to_string(note_number: f32) -> String {
   let note_names = [
