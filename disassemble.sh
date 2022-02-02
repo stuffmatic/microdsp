@@ -3,7 +3,7 @@ PROFILE=$1
 TARGET=thumbv8m.main-none-eabihf
 
 LIB_NAME=libmicro_ear.rlib
-OUTPUT_FILE=disassebly.$PROFILE.$TARGET.txt
+OUTPUT_FILE=disassembly.$PROFILE.$TARGET.txt
 
 if [[ $PROFILE == 'debug' ]]; then
   CARGO_ARGS=""
