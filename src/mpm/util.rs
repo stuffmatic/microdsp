@@ -10,7 +10,7 @@ pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
 pub fn freq_to_midi_note(f: f32) -> f32 {
     // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
     // MIDI note 21 is A0 at 27.5 Hz
-
+    // TODO: Clean this up
     let denominator = 0.02508583297199_f32; // Math.log10(Math.pow(2, 1/12))
     21.0_f32 + micromath::F32Ext::log10(f / 27.5) / denominator
 }

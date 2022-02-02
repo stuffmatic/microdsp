@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use micro_mpm::Detector;
-use micro_mpm::Result;
+use micro_ear::mpm::Detector;
+use micro_ear::mpm::Result;
 
 fn run_result_benchmark(id: &str, c: &mut Criterion, window_size: usize, lag_count: usize) {
     let mut result = Result::new(window_size, lag_count);

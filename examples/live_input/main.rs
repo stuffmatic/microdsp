@@ -6,7 +6,7 @@ use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 
 
-use micro_mpm::Detector;
+use micro_ear::mpm::Detector;
 
 struct PitchReading {
     midi_note_number: f32,

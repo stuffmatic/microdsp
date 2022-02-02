@@ -1,4 +1,4 @@
-use micro_mpm::Result;
+use micro_ear::mpm::Result;
 
 fn main() {
     let loop_count = 5000;

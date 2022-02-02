@@ -1,8 +1,8 @@
-use crate::key_maximum::KeyMaximum;
-use crate::util;
 use crate::alloc::vec;
 use crate::alloc::boxed::Box;
 use micromath::F32Ext;
+use crate::mpm::util;
+use crate::mpm::key_maximum::KeyMaximum;
 
 /// The maximum number of key maxima to gather during the peak finding phase.
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;

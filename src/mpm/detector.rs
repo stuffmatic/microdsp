@@ -1,6 +1,6 @@
 use crate::alloc::vec;
 use crate::alloc::boxed::Box;
-use crate::result::Result;
+use crate::mpm::result::Result;
 
 /// * Collects input samples into (possibly overlapping) windows
 /// * Performs pitch detection on each newly filled window

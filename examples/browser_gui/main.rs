@@ -9,9 +9,9 @@ use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 use dev_helpers::WebsocketServer;
 
-use micro_mpm::Detector;
-use micro_mpm::KeyMaximum;
-use micro_mpm::Result;
+use micro_ear::mpm::Detector;
+use micro_ear::mpm::KeyMaximum;
+use micro_ear::mpm::Result;
 
 const MAX_NSDF_SIZE: usize = 1024;
 
