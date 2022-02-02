@@ -1,12 +1,13 @@
 [package]
-name = "mpm-pitch"
+resolver = "2"
+name = "micro-ear"
 version = "0.1.0"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
-description = "An implementation of the MPM (McLeod Pitch Method) pitch detection algorithm. Reasonably performant and no_std compatible."
-repository = "https://github.com/stuffmatic/mpm-pitch/"
+description = "A reasonably performant and no_std compatible implementation of the MPM (McLeod Pitch Method) pitch detection algorithm"
+repository = "https://github.com/stuffmatic/micro-ear/"
 license = "MIT"
-categories = ["no-std", "multimedia::audio"]
+categories = ["no-std", "multimedia::audio", "embedded"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

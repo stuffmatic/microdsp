@@ -2,8 +2,9 @@ use crate::alloc::vec;
 use crate::alloc::boxed::Box;
 use crate::result::Result;
 
-/// Handles collecting input samples into (possibly overlapping) windows
-/// and performing pitch detection on each newly filled window.
+/// * Collects input samples into (possibly overlapping) windows
+/// * Performs pitch detection on each newly filled window
+/// * Handles downsampling
 pub struct Detector {
     /// The audio sample rate in Hz.
     sample_rate: f32,
@@ -25,10 +26,10 @@ pub struct Detector {
 
 impl Detector {
     pub fn new(sample_rate: f32, window_size: usize, window_distance: usize) -> Self {
-        Detector::from_options(sample_rate, window_size, window_size / 2, window_distance, 1)
+        Detector::from_options(sample_rate, window_size, window_distance, window_size / 2, 1)
     }
 
-    pub fn from_options(sample_rate: f32, window_size: usize, lag_count: usize, window_distance: usize, downsampling_factor: usize) -> Self {
+    pub fn from_options(sample_rate: f32, window_size: usize, window_distance: usize, lag_count: usize, downsampling_factor: usize) -> Self {
         if window_size == 0 {
             panic!("Window size must be greater than 0")
         }
@@ -178,7 +179,7 @@ mod tests {
 
         let mut detector = Detector::new(sample_rate, window_size, window_distance);
 
-        detector.process(&window[..], |sample_offset: usize, result: &Result| {
+        detector.process(&window[..], |_: usize, result: &Result| {
             assert!((frequency - result.frequency).abs() <= 0.001);
         });
     }
@@ -192,14 +193,14 @@ mod tests {
         let sample_rate: f32 = 44100.0;
         let window = generate_sine(sample_rate, frequency, window_size);
         let downsampling_factor = 4;
-        let mut detector = Detector::from_options(sample_rate, window_size, lag_count, window_distance, downsampling_factor);
+        let mut detector = Detector::from_options(sample_rate, window_size, window_distance, lag_count, downsampling_factor);
         let downsampled_window_size = detector.downsampled_window_size();
 
-        detector.process(&window[..], |sample_offset: usize, result: &Result| {
+        detector.process(&window[..], |_: usize, result: &Result| {
             assert!(result.window.len() == downsampled_window_size);
             assert!((frequency - result.frequency).abs() <= 0.05);
         });
-        detector.process(&window[..], |sample_offset: usize, result: &Result| {
+        detector.process(&window[..], |_: usize, result: &Result| {
             assert!(result.window.len() == downsampled_window_size);
             assert!((frequency - result.frequency).abs() <= 0.05);
         });
@@ -222,7 +223,7 @@ mod tests {
     #[should_panic]
     fn test_nondivisible_downsampling_factor_2() {
         // Make sure we panic if the window distance is not evenly divisible by the downsampling factor
-        let _ = Detector::from_options(44100., 512, 256, 250, 4);
+        let _ = Detector::from_options(44100., 512, 250, 256, 4);
     }
 
     #[test]
@@ -264,7 +265,7 @@ mod tests {
             buffer[i] = value as f32;
         }
 
-        let mut detector = Detector::from_options(44100.0, window_size, window_size / 2, window_distance, downsampling_factor);
+        let mut detector = Detector::from_options(44100.0, window_size, window_distance,window_size / 2, downsampling_factor);
 
         // Verify that the buffer to process in callback i starts with the value i
         let mut result_count = 0;

@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use mpm_pitch::Detector;
-use mpm_pitch::Result;
+use micro_mpm::Detector;
+use micro_mpm::Result;
 
 fn run_result_benchmark(id: &str, c: &mut Criterion, window_size: usize, lag_count: usize) {
     let mut result = Result::new(window_size, lag_count);
@@ -31,8 +31,8 @@ fn run_detector_benchmark(id: &str, c: &mut Criterion, window_size: usize, downs
     let mut detector = Detector::from_options(
         44100.,
         window_size,
-        window_size / 2,
         window_size,
+        window_size / 2,
         downsampling_factor,
     );
     let input_buffer = vec![0.0; window_size];

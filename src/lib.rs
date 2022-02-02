@@ -5,7 +5,7 @@
 //!
 //! The implementation is reasonably performant and suitable for real time use:
 //! * No memory is allocated apart from a modest amount on initialization.
-//! * Autocorrelation is computed using FFT.
+//! * Autocorrelation is computed using real-only FFT.
 //! * Computation of the NSDF is accelerated using the incremental scheme described in the paper.
 //! * Downsampling is supported, increasing performance at the expense of frequency resolution.
 //!
@@ -13,14 +13,14 @@
 //! ## High level API
 //! Handles collecting input samples into possibly overlapping windows and processing each newly filled window.
 //! ```
-//! use mpm_pitch::Detector;
+//! use micro_mpm::Detector;
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
 //! let sample_rate = 44100.0;
 //! let sine_frequency = 440.0;
 //! let mut chunk: Vec<f32> = vec![0.0; 10000];
 //! for i in 0..chunk.len() {
-//!     let sine_value = (2.0 * std::f32::consts::PI * sine_frequency * (i as f32) / sample_rate).sin();
+//!     let sine_value = (2.0 * core::f32::consts::PI * sine_frequency * (i as f32) / sample_rate).sin();
 //!     chunk[i] = sine_value;
 //! }
 //!
@@ -46,7 +46,7 @@
 //! ## Low level API
 //! Used to process a window directly. Useful if you want to roll your own window handling.
 //! ```
-//! use mpm_pitch::Result;
+//! use micro_mpm::Result;
 //!
 //! // Create a Result instance
 //! let sample_rate = 44100.0;

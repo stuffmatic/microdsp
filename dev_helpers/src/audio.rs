@@ -1,7 +1,6 @@
 extern crate portaudio;
 use rtrb;
 use portaudio as pa;
-
 pub trait AudioProcessor<S> {
     /// Return false to stop the audio stream, true otherwise.
     fn process(

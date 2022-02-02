@@ -91,7 +91,7 @@ impl Result {
     /// The maximum absolute value of the input window, in dB relative to 1,
     /// i.e 0 dB corresponds to a level of 1.
     pub fn window_peak_db(&self) -> f32 {
-        20. * self.window_peak().log10()
+        20. * F32Ext::log10(self.window_peak())
     }
 
     /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
@@ -101,13 +101,13 @@ impl Result {
         for sample in self.window.iter() {
             rms += sample * sample
         }
-        (rms / (self.window.len() as f32)).sqrt()
+        F32Ext::sqrt(rms / (self.window.len() as f32))
     }
 
     /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
     /// of the input window, in dB relative to 1, i.e 0 dB corresponds to a level of 1.
     pub fn window_rms_db(&self) -> f32 {
-        20. * self.window_rms().log10()
+        20. * F32Ext::log10(self.window_rms())
     }
 
     /// Indicates if the detection result has a valid pitch estimate. Note that this does not necessarily

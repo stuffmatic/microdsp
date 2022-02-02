@@ -1,4 +1,4 @@
-use mpm_pitch::Result;
+use micro_mpm::Result;
 
 fn main() {
     let loop_count = 5000;

@@ -9,9 +9,9 @@ use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 use dev_helpers::WebsocketServer;
 
-use mpm_pitch::Detector;
-use mpm_pitch::KeyMaximum;
-use mpm_pitch::Result;
+use micro_mpm::Detector;
+use micro_mpm::KeyMaximum;
+use micro_mpm::Result;
 
 const MAX_NSDF_SIZE: usize = 1024;
 
@@ -140,7 +140,7 @@ impl MPMAudioProcessor {
         MPMAudioProcessor {
             processed_sample_count: 0,
             sample_rate,
-            pitch_detector: Detector::from_options(sample_rate, 1024, 512, 3 * 256, 8),
+            pitch_detector: Detector::from_options(sample_rate, 3 * 256, 512, 512, 8),
             detector_settings: PitchDetectorSettings::new()
         }
     }
@@ -190,11 +190,7 @@ fn main() {
     println!("Entering event loop, polling every {} ms", poll_interval_ms);
     println!("Open index.html in a web browser");
 
-
-
     loop {
-        thread::sleep(Duration::from_millis(poll_interval_ms));
-
         // Get incoming websocket messages
         loop {
             match ws_server.rx_recv.try_recv() {
@@ -222,6 +218,7 @@ fn main() {
                 },
             }
         }
+
         // Send the most recent pitch reading in case more than one was received
         match received_pitch_readings.last() {
             Some(info) => {
@@ -230,6 +227,8 @@ fn main() {
             }
             None => {}
         }
+
+        thread::sleep(Duration::from_millis(poll_interval_ms));
     }
 
     ws_server

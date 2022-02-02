@@ -8,6 +8,6 @@ edition = "2018"
 
 [dependencies]
 rtrb = "0.1"
-crossbeam-channel = "*"
-portaudio = "*"
-ws = "*"
+crossbeam-channel = "*" # TODO: don't depend on crossbeam?
+portaudio = "0.7.0" # TODO: specify version
+ws = "*" # TODO: specify version
