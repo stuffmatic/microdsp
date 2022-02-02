@@ -31,10 +31,9 @@
 //!
 //! // Perform pitch detection. The detector extracts and processes windows and
 //! // invokes the provided callback when a new window has been analyzed.
-//! detector.process(&chunk[..], |sample_index, result| {
-//!     let time_s = sample_rate * (sample_index as f32);
+//! detector.process(&chunk[..], |result| {
 //!     if result.is_tone() {
-//!         println!("t = {} s, Frequency {} Hz, clarity {}", time_s, result.frequency, result.clarity);
+//!         println!("Frequency {} Hz, clarity {}", result.frequency, result.clarity);
 //!         assert!((sine_frequency - result.frequency).abs() <= 0.01);
 //!     } else {
 //!         // No discernable pitch detected. Should not end up here, since

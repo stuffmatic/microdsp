@@ -70,6 +70,10 @@ impl WindowProcessor {
         self.downsampled_hop_size
     }
 
+    pub fn downsampled_window_size(&self) -> usize {
+        self.downsampled_window_size
+    }
+
     pub fn process<F>(&mut self, buffer: &[f32], mut handler: F)
     where
         F: FnMut(&[f32]),

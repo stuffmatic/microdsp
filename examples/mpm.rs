@@ -35,7 +35,7 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
         _: &mut dev_helpers::rtrb::Consumer<PitchReading>,
     ) -> bool {
         self.pitch_detector
-            .process(in_buffer, |sample_index, result| {
+            .process(in_buffer, |result| {
                 if result.is_tone() {
                     let push_result = to_main_thread.push(PitchReading {
                         midi_note_number: result.midi_note_number,
