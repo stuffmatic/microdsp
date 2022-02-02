@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>micro-ear demo</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 30px;
+    }
+  </style>
+  <script src="/js/audio_worklet_starter.js"></script>
+  <script>
+    const optionSets = [
+      // Playback only
+      {
+        workletNodeName: "demo-processor",
+        workletProcessorUrl: "demo_processor.js",
+        workletNodeOptions: {
+          numberOfInputs: 0,
+          numberOfOutputs: 1,
+          outputChannelCount: [2]
+        }
+      },
+      // Playback and optional recording
+      {
+        workletNodeName: "demo-processor",
+        workletProcessorUrl: "demo_processor.js",
+        workletNodeOptions: {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [2]
+        }
+      },
+      // Playback and required recording
+      {
+        workletNodeName: "demo-processor",
+        workletProcessorUrl: "demo_processor.js",
+        workletNodeOptions: {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [2]
+        },
+        microphoneMode: "required"
+      },
+      // Wasm demo
+      {
+        workletNodeName: "demo-wasm-processor",
+        workletProcessorUrl: "demo_wasm_processor.js",
+        workletNodeOptions: {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [2]
+        },
+        wasmUrl: "demo_synth.wasm"
+      }
+    ]
+
+    let workletNode = null
+    let micLevelElement = null
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+      // Updated frequently, so cache this element
+      micLevelElement = document.getElementById("mic-level")
+    })
+
+    function setInnerText(id, innerText) {
+      document.getElementById(id).innerText = innerText
+    }
+
+    function onWorkletNodeCreated(node) {
+      document.getElementById("button-container").style.display = "none"
+      document.getElementById("synth-container").style.display = "inherit"
+      workletNode = node
+      workletNode.port.onmessage = m => {
+        micLevelElement.innerText = m.data.value.toFixed(3)
+      }
+
+      setInnerText("context-state", workletNode.context.state)
+      setInnerText("sample-rate", workletNode.context.sampleRate)
+      setInnerText("latency", workletNode.context.baseLatency + " s")
+      setInnerText("num-inputs", workletNode.numberOfInputs)
+      setInnerText("num-outputs", workletNode.numberOfOutputs)
+    }
+
+    function toggleTone() {
+      if (workletNode) {
+        workletNode.port.postMessage({ type: "toggleTone" })
+      }
+    }
+
+    function onError(error) {
+      document.getElementById("button-container").style.display = "none"
+      document.getElementById("error-message-container").style.display = "inherit"
+      setInnerText("error-message", "error.name: " + error.name + "\nerror.message: " + error.message)
+    }
+
+    function start(optionSetIndex) {
+      const options = optionSets[optionSetIndex]
+      startAudioWorklet(options).then((workletNode) => {
+        onWorkletNodeCreated(workletNode)
+      }).catch((error) => {
+        onError(error)
+      })
+    }
+  </script>
+</head>
+
+<body>
+  <h1>audio-worklet-starter demo</h1>
+
+  <div id="button-container">
+    <p>Note: Chrome won't allow playback until the user has interacted with the page.</p>
+    <div class="demo-entry">
+      <h3>Playback only</h3>
+      <p>Does not use the microphone.</p>
+      <button onclick="start(0)">Start</button>
+    </div>
+    <div class="demo-entry">
+      <h3>Playback and optional recording</h3>
+      <p>Should start without error if the user denies access to the microphone.</p>
+      <button onclick="start(1)">Start</button>
+    </div>
+    <div class="demo-entry">
+      <h3>Playback and required recording</h3>
+      <p>Should fail with an error if the user denies access to the microphone.</p>
+      <button onclick="start(2)">Start</button>
+    </div>
+    <div class="demo-entry">
+      <h3>WebAssembly synth, optional recording. </h3>
+      <p>Should start without error if the user denies access to the microphone.</p>
+      <button onclick="start(3)">Start</button>
+    </div>
+  </div>
+  <div id="synth-container">
+    <table>
+      <tr>
+        <td>Context state</td>
+        <td id="context-state">n/a</td>
+      </tr>
+      <tr>
+        <td>Context sample rate</td>
+        <td id="sample-rate">n/a</td>
+      </tr>
+      <tr>
+        <td>Context base latency</td>
+        <td id="latency">n/a</td>
+      </tr>
+      <tr>
+        <td>Number of inputs</td>
+        <td id="num-inputs">n/a</td>
+      </tr>
+      <tr>
+        <td>Number of outputs</td>
+        <td id="num-outputs">n/a</td>
+      </tr>
+    </table>
+    <br>
+    <button onclick="toggleTone()">Toggle tone</button>
+    <div><br>Microphone level: <span id="mic-level">n/a</span></div>
+    <br>
+    <button onclick="location.reload()">Back (reloads page)</button>
+  </div>
+  <div id="error-message-container">
+    <p id="error-message"></p>
+    <button onclick="location.reload()">Back (reloads page)</button>
+  </div>
+</body>
+
+</html>
