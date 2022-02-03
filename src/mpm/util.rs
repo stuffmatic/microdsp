@@ -8,11 +8,9 @@ pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
 
 /// Converts a frequency to a MIDI note number (with a fractional part)
 pub fn freq_to_midi_note(f: f32) -> f32 {
-    // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
-    // MIDI note 21 is A0 at 27.5 Hz
-    // TODO: Clean this up
-    let denominator = 0.02508583297199_f32; // Math.log10(Math.pow(2, 1/12))
-    21.0_f32 + micromath::F32Ext::log10(f / 27.5) / denominator
+    // note(f) = 12 * Math.log2(f / 440.0) + 69
+    //         = 12 * Math.log2(f) + 12 * Math.log2(1/440) + 69
+    12.0 * F32Ext::log2(f) - 36.376316562295926
 }
 
 /// Computes m' defined in eq (6), using the incremental subtraction
@@ -41,44 +39,6 @@ pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
         result = result << 1;
     }
     result
-}
-
-/// Performs an in-place FFT on a given buffer.
-pub fn real_fft_in_place(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
-    let fft_size = buffer.len();
-    match fft_size {
-        8 => {
-            microfft::real::rfft_8(buffer.try_into().unwrap())
-        }
-        16 => {
-            microfft::real::rfft_16(buffer.try_into().unwrap())
-        }
-        32 => {
-            microfft::real::rfft_16(buffer.try_into().unwrap())
-        }
-        64 => {
-            microfft::real::rfft_64(buffer.try_into().unwrap())
-        }
-        128 => {
-            microfft::real::rfft_128(buffer.try_into().unwrap())
-        }
-        256 => {
-            microfft::real::rfft_256(buffer.try_into().unwrap())
-        }
-        512 => {
-            microfft::real::rfft_512(buffer.try_into().unwrap())
-        }
-        1024 => {
-            microfft::real::rfft_1024(buffer.try_into().unwrap())
-        }
-        2048 => {
-            microfft::real::rfft_2048(buffer.try_into().unwrap())
-        }
-        4096 => {
-            microfft::real::rfft_4096(buffer.try_into().unwrap())
-        }
-        _ => panic!("Unsupported fft size {}", fft_size),
-    }
 }
 
 pub fn autocorr_fft(
@@ -185,36 +145,22 @@ mod tests {
 
     #[test]
     fn text_approximate_note_number() {
-        // The hz to midi note conversion relies on the approximate log10
+        // The hz to midi note conversion relies on the approximate log2
         // function of the micromath crate. This test compares this
-        // approximation to std's log10 and makes sure the difference
+        // approximation to std's log2 and makes sure the difference
         // is acceptable.
 
         // The maximum acceptable error in cents. 0.1 is 1/1000th of a semitone.
         let max_cent_error = 0.11_f32;
         for i in 1..10000 {
             let f = i as f32;
-            let denominator = 0.02508583297199_f32; // Math.log10(Math.pow(2, 1/12))
-            let actual_note_number = 21.0_f32 + (f / 27.5).log10() / denominator;
+            let actual_note_number = 12.0 * (f / 440.0).log2() + 69.0;
             let approx_note_number = freq_to_midi_note(f);
             let delta_cents = 100. * (actual_note_number - approx_note_number);
-            assert!(delta_cents.abs() <= max_cent_error);
+            if delta_cents.abs() > max_cent_error {
+                assert!(false);
+            }
         }
-    }
-
-    #[test]
-    fn test_midi_note_conversion() {
-        // https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies
-
-        let note_number_a0 = 21.0_f32;
-        let f_a0 = 27.5_f32;
-        let computed_note_number_a0 = freq_to_midi_note(f_a0);
-        assert!((computed_note_number_a0 - note_number_a0).abs() <= f32::EPSILON);
-
-        let note_number_a4 = 69.0_f32;
-        let f_a4 = 440.0_f32;
-        let computed_note_number_a4 = freq_to_midi_note(f_a4);
-        assert!((computed_note_number_a4 - note_number_a4).abs() <= 0.01);
     }
 
     #[test]
