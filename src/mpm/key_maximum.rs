@@ -9,6 +9,7 @@ pub struct KeyMaximum {
     /// The NSDF value for this maximum, approximated using parabolic interpolation.
     pub value: f32,
     /// The lag, in samples, for this maximum, approximated using parabolic interpolation.
+    /// Not necessarily an integer.
     pub lag: f32,
 }
 

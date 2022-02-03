@@ -1,7 +1,7 @@
 use micro_ear::{snov::{
-    compression::{HardKneeCompression},
+    compression_function::{HardKneeCompression},
     detector::SpectralNoveltyDetector
-}, common::window::HannWindow};
+}, common::window_function::HannWindow};
 use portaudio as pa;
 use rtrb;
 use std::thread;

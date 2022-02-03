@@ -1,7 +1,10 @@
 # What is this?
 
-`micro-ear` provides audio analysis algorithms
+`micro-ear` provides audio analysis algorithms.
 
+## Running the examples
+
+`portaudio`
 
 ## Algorithms
 

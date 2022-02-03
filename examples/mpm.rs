@@ -6,7 +6,7 @@ use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 
 
-use micro_ear::mpm::Detector;
+use micro_ear::mpm::PitchDetector;
 
 struct PitchReading {
     midi_note_number: f32,
@@ -14,13 +14,13 @@ struct PitchReading {
 }
 
 struct MPMAudioProcessor {
-    pitch_detector: Detector,
+    pitch_detector: PitchDetector,
 }
 
 impl MPMAudioProcessor {
     fn new(sample_rate: f32) -> MPMAudioProcessor {
         MPMAudioProcessor {
-            pitch_detector: Detector::new(sample_rate, 1024, 3 * 256),
+            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256),
         }
     }
 }

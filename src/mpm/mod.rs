@@ -90,6 +90,6 @@ mod key_maximum;
 mod result;
 mod util;
 
-pub use detector::Detector;
+pub use detector::PitchDetector;
 pub use key_maximum::KeyMaximum;
-pub use result::Result;
+pub use result::MpmPitchResult;

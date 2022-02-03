@@ -7,7 +7,7 @@ use crate::mpm::key_maximum::KeyMaximum;
 /// The maximum number of key maxima to gather during the peak finding phase.
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;
 /// A pitch detection result.
-pub struct Result {
+pub struct MpmPitchResult {
     /// The estimated pitch frequency in Hz.
     pub frequency: f32,
     /// The value of the NSDF at the maximum corresponding to the pitch period.
@@ -36,7 +36,7 @@ pub struct Result {
     scratch_buffer: Box<[f32]>,
 }
 
-impl Result {
+impl MpmPitchResult {
     pub fn new(window_size: usize, lag_count: usize) -> Self {
         // Allocate buffers
         let window = (vec![0.0; window_size]).into_boxed_slice();
@@ -53,7 +53,7 @@ impl Result {
         .into_boxed_slice();
 
         // Create the instance
-        Result {
+        MpmPitchResult {
             frequency: 0.0,
             clarity: 0.0,
             midi_note_number: 0.0,
@@ -353,7 +353,7 @@ mod tests {
         let sample_rate = 44100.0;
         let window_size = 1024;
 
-        let mut result = Result::new(window_size, window_size / 2);
+        let mut result = MpmPitchResult::new(window_size, window_size / 2);
         result.compute(sample_rate);
         assert_eq!(result.nsdf[0], 0.);
         assert_eq!(result.key_max_count, 0);
@@ -371,7 +371,7 @@ mod tests {
             assert!(expected_pitch_period < (lag_count as f32));
 
             // Generate a pure tone and perform pitch detection
-            let mut result = Result::new(window_size, lag_count);
+            let mut result = MpmPitchResult::new(window_size, lag_count);
             for i in 0..window_size {
                 let sine_value = (2.0 * core::f32::consts::PI * f * (i as f32) / sample_rate).sin();
                 result.window[i] = sine_value;

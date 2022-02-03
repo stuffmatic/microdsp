@@ -72,7 +72,7 @@ impl WindowFunction for HannWindow {
 
 #[cfg(test)]
 mod tests {
-    use crate::common::window::{HannWindow, WelchWindow, WindowFunction};
+    use crate::common::window_function::{HannWindow, WelchWindow, WindowFunction};
 
     #[test]
     fn test_welch_window() {

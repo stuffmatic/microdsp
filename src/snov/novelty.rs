@@ -1,25 +1,7 @@
-use core::convert::TryInto;
 use alloc::{vec, boxed::Box};
-use microfft;
 
-use crate::{snov::{compression::CompressionFunction}, common::window::WindowFunction};
+use crate::{snov::{compression_function::CompressionFunction}, common::{window_function::WindowFunction, fft::real_fft_in_place}};
 
-pub fn real_fft_in_place(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
-    let fft_size = buffer.len();
-    match fft_size {
-        8 => microfft::real::rfft_8(buffer.try_into().unwrap()),
-        16 => microfft::real::rfft_16(buffer.try_into().unwrap()),
-        32 => microfft::real::rfft_16(buffer.try_into().unwrap()),
-        64 => microfft::real::rfft_64(buffer.try_into().unwrap()),
-        128 => microfft::real::rfft_128(buffer.try_into().unwrap()),
-        256 => microfft::real::rfft_256(buffer.try_into().unwrap()),
-        512 => microfft::real::rfft_512(buffer.try_into().unwrap()),
-        1024 => microfft::real::rfft_1024(buffer.try_into().unwrap()),
-        2048 => microfft::real::rfft_2048(buffer.try_into().unwrap()),
-        4096 => microfft::real::rfft_4096(buffer.try_into().unwrap()),
-        _ => panic!("Unsupported fft size {}", fft_size),
-    }
-}
 // https://www.audiolabs-erlangen.de/resources/MIR/FMP/C6/C6S1_NoveltySpectral.html
 pub struct SpectralFluxNovelty {
     power_0: Box<[f32]>,
@@ -30,16 +12,40 @@ pub struct SpectralFluxNovelty {
     has_processed_second_window: bool,
 }
 
+struct AllocatedBuffers {
+    power_0: Box<[f32]>,
+    power_1: Box<[f32]>,
+    d_power: Box<[f32]>,
+}
+
+impl AllocatedBuffers {
+    fn new(window_size: usize) -> Self {
+        AllocatedBuffers {
+            power_0: vec![0.; window_size / 2].into_boxed_slice(),
+            power_1: vec![0.; window_size / 2].into_boxed_slice(),
+            d_power: vec![0.; window_size].into_boxed_slice(),
+        }
+    }
+}
+
 impl SpectralFluxNovelty {
-    pub fn new(downsampled_window_size: usize) -> Self {
+    pub fn new(window_size: usize) -> Self {
+        let buffers = AllocatedBuffers::new(window_size);
         SpectralFluxNovelty {
-            power_0: vec![0.; downsampled_window_size / 2].into_boxed_slice(),
-            power_1: vec![0.; downsampled_window_size / 2].into_boxed_slice(),
-            d_power: vec![0.; downsampled_window_size].into_boxed_slice(),
+            power_0: buffers.power_0,
+            power_1: buffers.power_1,
+            d_power: buffers.d_power,
             novelty: 0.,
             prev_is_1: true,
             has_processed_second_window: false,
         }
+    }
+
+    pub fn reallocate(&mut self, window_size: usize) {
+        let buffers = AllocatedBuffers::new(window_size);
+        self.power_0 = buffers.power_0;
+        self.power_1 = buffers.power_1;
+        self.d_power = buffers.d_power;
     }
 
     pub fn novelty(&self) -> f32 {

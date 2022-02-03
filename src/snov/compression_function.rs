@@ -75,7 +75,7 @@ impl CompressionFunction for HardKneeCompression {
 
 #[cfg(test)]
 mod tests {
-    use crate::snov::compression::{CompressionFunction, QuarticCompression};
+    use crate::snov::compression_function::{CompressionFunction, QuarticCompression};
 
     #[test]
     fn test_quartic_compression() {
