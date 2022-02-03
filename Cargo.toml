@@ -1,5 +1,4 @@
 [package]
-resolver = "2"
 name = "micro-ear"
 version = "0.1.0"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
@@ -26,4 +25,4 @@ harness = false
 
 [dependencies]
 microfft = { version = "0.4.0" }
-micromath = "*"
+micromath = { version = "2.0.0" }
