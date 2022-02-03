@@ -1,5 +1,5 @@
-use crate::common::window_processor::{WindowProcessor};
 use crate::common::window_function::{HannWindow, WindowFunction};
+use crate::common::window_processor::WindowProcessor;
 use crate::snov::{
     compression_function::{CompressionFunction, HardKneeCompression},
     novelty::SpectralFluxNovelty,

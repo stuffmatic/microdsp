@@ -1,4 +1,4 @@
-use alloc::{vec, boxed::Box};
+use alloc::{boxed::Box, vec};
 
 pub struct WindowProcessor {
     downsampled_window: Box<[f32]>,

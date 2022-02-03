@@ -1,8 +1,8 @@
-use crate::alloc::vec;
 use crate::alloc::boxed::Box;
-use micromath::F32Ext;
-use crate::mpm::util;
+use crate::alloc::vec;
 use crate::mpm::key_maximum::KeyMaximum;
+use crate::mpm::util;
+use micromath::F32Ext;
 
 /// The maximum number of key maxima to gather during the peak finding phase.
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;
@@ -41,16 +41,10 @@ impl MpmPitchResult {
         // Allocate buffers
         let window = (vec![0.0; window_size]).into_boxed_slice();
         let nsdf = (vec![0.0; lag_count]).into_boxed_slice();
-        let r_prime = (vec![
-            0.0;
-            util::autocorr_fft_size(window_size, lag_count)
-        ])
-        .into_boxed_slice();
-        let scratch_buffer = (vec![
-            0.0;
-            util::autocorr_fft_size(window_size, lag_count)
-        ])
-        .into_boxed_slice();
+        let r_prime =
+            (vec![0.0; util::autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
+        let scratch_buffer =
+            (vec![0.0; util::autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
 
         // Create the instance
         MpmPitchResult {
@@ -325,7 +319,7 @@ impl MpmPitchResult {
             &self.window[..],
             &mut r_prime,
             &mut scratch_buffer,
-            nsdf.len()
+            nsdf.len(),
         );
 
         // Compute m' and store it in the nsdf buffer

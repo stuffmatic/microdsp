@@ -5,7 +5,6 @@ use dev_helpers::note_number_to_string;
 use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 
-
 use micro_ear::mpm::PitchDetector;
 
 struct PitchReading {
@@ -34,15 +33,14 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
         to_main_thread: &mut dev_helpers::rtrb::Producer<PitchReading>,
         _: &mut dev_helpers::rtrb::Consumer<PitchReading>,
     ) -> bool {
-        self.pitch_detector
-            .process(in_buffer, |result| {
-                if result.is_tone() {
-                    let _ = to_main_thread.push(PitchReading {
-                        midi_note_number: result.midi_note_number,
-                        frequency: result.frequency,
-                    });
-                }
-            });
+        self.pitch_detector.process(in_buffer, |result| {
+            if result.is_tone() {
+                let _ = to_main_thread.push(PitchReading {
+                    midi_note_number: result.midi_note_number,
+                    frequency: result.frequency,
+                });
+            }
+        });
 
         true
     }
@@ -68,7 +66,7 @@ fn main() {
                     note_number_to_string(reading.midi_note_number),
                     reading.frequency
                 ),
-                _ => break
+                _ => break,
             }
         }
     }

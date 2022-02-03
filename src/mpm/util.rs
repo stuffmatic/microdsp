@@ -1,5 +1,5 @@
-use micromath::F32Ext;
 use crate::common::fft::real_fft_in_place;
+use micromath::F32Ext;
 
 pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
     if lag_count > window_size {
@@ -46,7 +46,7 @@ pub fn autocorr_fft(
     window: &[f32],
     result: &mut [f32],
     scratch_buffer: &mut [f32],
-    lag_count: usize
+    lag_count: usize,
 ) {
     // Sanity checks
     let fft_size = autocorr_fft_size(window.len(), lag_count);
@@ -57,7 +57,7 @@ pub fn autocorr_fft(
             fft_size
         )
     }
-    if scratch_buffer.len() < result.len()  {
+    if scratch_buffer.len() < result.len() {
         panic!("Autocorr fft scatch buffer must not be shorter than result buffer")
     }
 
@@ -95,8 +95,8 @@ pub fn autocorr_fft(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alloc::vec::Vec;
     use crate::alloc::vec;
+    use crate::alloc::vec::Vec;
 
     /// Computes the autocorrelation as a naive inefficient summation.
     /// Only used for testing purposes.
@@ -200,11 +200,14 @@ mod tests {
         autocorr_sum(&window[..], &mut autocorr_reference[..]);
 
         let fft_size = autocorr_fft_size(window.len(), lag_count);
-        let mut fft_buffer: Vec<f32> =
-            vec![0.0; fft_size];
-        let mut scratch_buffer: Vec<f32> =
-            vec![0.0; fft_size];
-        autocorr_fft(&window[..], &mut fft_buffer[..], &mut scratch_buffer[..], lag_count);
+        let mut fft_buffer: Vec<f32> = vec![0.0; fft_size];
+        let mut scratch_buffer: Vec<f32> = vec![0.0; fft_size];
+        autocorr_fft(
+            &window[..],
+            &mut fft_buffer[..],
+            &mut scratch_buffer[..],
+            lag_count,
+        );
 
         let epsilon = 1e-4;
         for (reference, fft_value) in autocorr_reference.iter().zip(fft_buffer.iter()) {

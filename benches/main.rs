@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use micro_ear::mpm::PitchDetector;
 use micro_ear::mpm::MpmPitchResult;
+use micro_ear::mpm::PitchDetector;
 
 fn run_mpm_benchmark(id: &str, c: &mut Criterion, window_size: usize, lag_count: usize) {
     let mut result = MpmPitchResult::new(window_size, lag_count);
@@ -27,7 +27,12 @@ fn result_benchmarks(c: &mut Criterion) {
     run_mpm_benchmark("Window 2048, lag 2048", c, 2048, 2048);
 }
 
-fn run_detector_benchmark(id: &str, c: &mut Criterion, window_size: usize, downsampling_factor: usize) {
+fn run_detector_benchmark(
+    id: &str,
+    c: &mut Criterion,
+    window_size: usize,
+    downsampling_factor: usize,
+) {
     let mut detector = PitchDetector::from_options(
         44100.,
         window_size,
@@ -38,11 +43,7 @@ fn run_detector_benchmark(id: &str, c: &mut Criterion, window_size: usize, downs
     let input_buffer = vec![0.0; window_size];
 
     c.bench_function(id, |b| {
-        b.iter(|| {
-            detector.process(black_box(&input_buffer[..]), |_| {
-
-            })
-        })
+        b.iter(|| detector.process(black_box(&input_buffer[..]), |_| {}))
     });
 }
 fn detector_benchmarks(c: &mut Criterion) {
@@ -55,4 +56,3 @@ fn detector_benchmarks(c: &mut Criterion) {
 
 criterion_group!(benches, detector_benchmarks, result_benchmarks);
 criterion_main!(benches);
-

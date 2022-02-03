@@ -1,6 +1,9 @@
-use alloc::{vec, boxed::Box};
+use alloc::{boxed::Box, vec};
 
-use crate::{snov::{compression_function::CompressionFunction}, common::{window_function::WindowFunction, fft::real_fft_in_place}};
+use crate::{
+    common::{fft::real_fft_in_place, window_function::WindowFunction},
+    snov::compression_function::CompressionFunction,
+};
 
 // https://www.audiolabs-erlangen.de/resources/MIR/FMP/C6/C6S1_NoveltySpectral.html
 pub struct SpectralFluxNovelty {
@@ -107,7 +110,8 @@ impl SpectralFluxNovelty {
 
         let mut novelty = 0.;
         if self.has_processed_second_window {
-            for i in 0..power.len() { // TODO: use zip etc
+            for i in 0..power.len() {
+                // TODO: use zip etc
                 let delta = power[i] - power_prev[i];
                 self.d_power[i] = delta;
                 if delta > 0. {

@@ -1,12 +1,11 @@
-use micro_ear::{snov::{
-    compression_function::{HardKneeCompression},
-    detector::SpectralNoveltyDetector
-}, common::window_function::HannWindow};
+use micro_ear::{
+    common::window_function::HannWindow,
+    snov::{compression_function::HardKneeCompression, detector::SpectralNoveltyDetector},
+};
 use portaudio as pa;
 use rtrb;
 use std::thread;
 use std::time::Duration;
-
 
 pub trait AudioProcessor<S> {
     /// Return false to stop the audio stream, true otherwise.
@@ -81,7 +80,7 @@ where
 }
 
 enum DetectorMessage {
-    NoveltyValue(f32)
+    NoveltyValue(f32),
 }
 
 const WINDOW_SIZE: usize = 1024;
@@ -132,15 +131,13 @@ fn main() {
 
         loop {
             match audio_engine.from_audio_thread.pop() {
-                Ok(message) => {
-                    match message {
-                        DetectorMessage::NoveltyValue(value) => {
-                            if value > threshold && is_armed {
-                                is_armed = false;
-                                println!("Novelty above threshold {}", value)
-                            } else if value < threshold {
-                                is_armed = true;
-                            }
+                Ok(message) => match message {
+                    DetectorMessage::NoveltyValue(value) => {
+                        if value > threshold && is_armed {
+                            is_armed = false;
+                            println!("Novelty above threshold {}", value)
+                        } else if value < threshold {
+                            is_armed = true;
                         }
                     }
                 },
