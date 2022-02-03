@@ -39,7 +39,7 @@ fn run_detector_benchmark(id: &str, c: &mut Criterion, window_size: usize, downs
 
     c.bench_function(id, |b| {
         b.iter(|| {
-            detector.process(black_box(&input_buffer[..]), |_, _| {
+            detector.process(black_box(&input_buffer[..]), |_| {
 
             })
         })

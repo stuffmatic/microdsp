@@ -37,7 +37,7 @@ impl AudioProcessor<PitchReading> for MPMAudioProcessor {
         self.pitch_detector
             .process(in_buffer, |result| {
                 if result.is_tone() {
-                    let push_result = to_main_thread.push(PitchReading {
+                    let _ = to_main_thread.push(PitchReading {
                         midi_note_number: result.midi_note_number,
                         frequency: result.frequency,
                     });
@@ -63,15 +63,12 @@ fn main() {
 
         loop {
             match audio_engine.from_audio_thread.pop() {
-                Err(reason) => {
-                    // println!("Failed to pop message from audio thread. {}", reason);
-                    break;
-                }
                 Ok(reading) => println!(
                     "{} | {:.2} Hz",
                     note_number_to_string(reading.midi_note_number),
                     reading.frequency
                 ),
+                _ => break
             }
         }
     }

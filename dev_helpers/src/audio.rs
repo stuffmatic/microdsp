@@ -28,8 +28,8 @@ where
         mut processor: T,
     ) -> Self {
         let queue_capacity = 1000;
-        let (mut to_audio_thread, mut from_main_thread) = rtrb::RingBuffer::<S>::new(queue_capacity).split();
-        let (mut to_main_thread, mut from_audio_thread) = rtrb::RingBuffer::<S>::new(queue_capacity).split();
+        let (to_audio_thread, mut from_main_thread) = rtrb::RingBuffer::<S>::new(queue_capacity).split();
+        let (mut to_main_thread, from_audio_thread) = rtrb::RingBuffer::<S>::new(queue_capacity).split();
         let pa = pa::PortAudio::new().unwrap();
         let default_input = pa.default_input_device().unwrap();
         let default_output = pa.default_output_device().unwrap();
@@ -45,7 +45,7 @@ where
                                     in_buffer,
                                     out_buffer,
                                     frames,
-                                    time,
+                                    time: _,
                                     ..
                                 }| {
             match processor.process(
