@@ -2,8 +2,8 @@ use microear::{
     common::window_function::HannWindow,
     snov::{compression_function::HardKneeCompression, detector::SpectralNoveltyDetector},
 };
-use portaudio as pa;
-use rtrb;
+use dev_helpers::portaudio as pa;
+use dev_helpers::rtrb;
 use std::thread;
 use std::time::Duration;
 

@@ -1,5 +1,6 @@
 mod audio;
 
+pub use portaudio;
 pub use rtrb;
 pub use audio::AudioEngine;
 pub use audio::AudioProcessor;
