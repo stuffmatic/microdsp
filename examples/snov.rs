@@ -1,4 +1,4 @@
-use micro_ear::{
+use microear::{
     common::window_function::HannWindow,
     snov::{compression_function::HardKneeCompression, detector::SpectralNoveltyDetector},
 };

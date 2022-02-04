@@ -13,7 +13,7 @@
 //! ## High level API
 //! Handles collecting input samples into possibly overlapping windows and processing each newly filled window.
 //! ```
-//! use micro_ear::mpm::Detector;
+//! use microear::mpm::Detector;
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
 //! let sample_rate = 44100.0;

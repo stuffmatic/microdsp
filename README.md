@@ -1,6 +1,6 @@
 # What is this?
 
-`micro-ear` provides audio analysis algorithms.
+`microear` provides audio analysis algorithms.
 
 ## Running the examples
 

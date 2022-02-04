@@ -12,11 +12,11 @@
         "args": [
           "test",
           "--no-run",
-          "--lib=micro-ear",
-          "--package=micro-ear"
+          "--lib=microear",
+          "--package=microear"
         ],
         "filter": {
-          "name": "micro-ear",
+          "name": "microear",
           "kind": "lib"
         }
       },

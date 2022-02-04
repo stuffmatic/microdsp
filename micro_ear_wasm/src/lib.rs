@@ -2,7 +2,7 @@
 extern crate lazy_static;
 
 use std::sync::Mutex;
-use micro_ear::mpm::Detector;
+use microear::mpm::Detector;
 
 lazy_static! {
     static ref DETECTOR: Mutex<Detector> = Mutex::new(Detector::new(44100., 1024, 512));

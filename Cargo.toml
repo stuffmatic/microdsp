@@ -1,10 +1,10 @@
 [package]
-name = "micro-ear"
+name = "microear"
 version = "0.1.0"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
 description = "A reasonably performant and no_std compatible implementation of the MPM (McLeod Pitch Method) pitch detection algorithm"
-repository = "https://github.com/stuffmatic/micro-ear/"
+repository = "https://github.com/stuffmatic/microear/"
 license = "MIT"
 categories = ["no-std", "multimedia::audio", "embedded"]
 

@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use micro_ear::mpm::MpmPitchResult;
-use micro_ear::mpm::PitchDetector;
+use microear::mpm::MpmPitchResult;
+use microear::mpm::PitchDetector;
 
 fn run_mpm_benchmark(id: &str, c: &mut Criterion, window_size: usize, lag_count: usize) {
     let mut result = MpmPitchResult::new(window_size, lag_count);

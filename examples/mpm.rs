@@ -5,7 +5,7 @@ use dev_helpers::note_number_to_string;
 use dev_helpers::AudioEngine;
 use dev_helpers::AudioProcessor;
 
-use micro_ear::mpm::PitchDetector;
+use microear::mpm::PitchDetector;
 
 struct PitchReading {
     midi_note_number: f32,
