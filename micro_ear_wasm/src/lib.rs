@@ -21,7 +21,7 @@ pub extern "C" fn process(raw_buffer: *const f32, buffer_size: usize) {
     let mut detector = DETECTOR.lock().unwrap();
 
     let buffer: &[f32] = unsafe { std::slice::from_raw_parts(raw_buffer, buffer_size)};
-    detector.process(buffer, |_, _| {
+    detector.process(buffer, |result| {
         // ignore this callback. instead, let the audio processor poll
         // the result.
     });

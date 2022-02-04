@@ -1,4 +1,4 @@
-//! A rust implementation of the MPM [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection algorithm,
+//! An implementation of the MPM [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection algorithm,
 //! described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf)
 //! by Philip McLeod and Geoff Wyvill. The algorithm is used for detecting pitch in monophonic, primarily musical, sounds. It
 //! cannot be used to detect multiple pitches at once, like in a musical chord.

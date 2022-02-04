@@ -110,7 +110,10 @@ function startAudioWorklet(options) {
         workletNodeOptions.processorOptions = Object.assign(Object.assign({}, workletNodeOptions.processorOptions), { "sampleRate": context.sampleRate });
         // Create audio worklet node
         const workletNode = new AudioWorkletNode(context, options.workletNodeName, options.workletNodeOptions);
-        workletNode.connect(context.destination);
+        // Connect outputs, if any
+        if (workletNode.numberOfOutputs > 0) {
+            workletNode.connect(context.destination);
+        }
         // If there is a microphone stream, connect it to the worklet node
         if (micStream != null) {
             const micSource = context.createMediaStreamSource(micStream);

@@ -1,1 +1,43 @@
-Hello MPM
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MPM pitch detection</title>
+  <link rel="stylesheet" href="/style/style.css">
+  <script src="/js/audio_worklet_starter.js"></script>
+  <script src="/js/index.js"></script>
+  <script src="/js/mpm.js"></script>
+</head>
+
+<body>
+  <div class="demo-container" style="display: flex; flex-direction: column;">
+    <div class="demo-top-bar" >
+      top bar 1
+    </div>
+    <div style="flex: 1;">
+      row 1
+    </div>
+    <div style="flex: 1;">
+      row 1
+    </div>
+
+    <div id="mic-access-modal">
+      <div class="mic-access-modal-content">
+        <div id="mic-access-prompt">
+          <div>
+            Please etc
+          </div>
+          <div>
+            <button class="button" onclick="onMicAccessButtonClick()">Start</button>
+            <a class="button" href="/">Back</a>
+          </div>
+        </div>
+        <div id="mic-access-error-message"></div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

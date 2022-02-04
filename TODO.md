@@ -6,3 +6,5 @@
 * Clean up freq_to_midi_note
 * Turn Detector into generic WindowCollector supporting hop sizes and (variable) downsampling
 * readme files for sub-crates
+* enum of valid fft lengths
+* rename crate to microear

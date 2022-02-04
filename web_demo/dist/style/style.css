@@ -1,0 +1,51 @@
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  margin: 0px;
+  font-family: sans-serif;
+  background-color: white;
+  color: black;
+}
+
+#mic-access-modal {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mic-access-modal-content {
+  padding: 30px;
+  max-width: 250px;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.demo-container {
+  width: 100%;
+  position: relative;
+}
+
+.demo-top-bar {
+  width: 100%;
+  height: 50px;
+}
+
+.button {
+  background-color: gray;
+  color: white;
+  padding: 10px;
+  text-decoration: none;
+  border: none;
+  font-size: inherit;
+}
