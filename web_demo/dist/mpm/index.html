@@ -7,6 +7,7 @@
   <title>MPM pitch detection</title>
   <link rel="stylesheet" href="/style/style.css">
   <script src="/js/audio_worklet_starter.js"></script>
+  <script src="/js/canvas_base.js"></script>
   <script src="/js/index.js"></script>
   <script src="/js/mpm.js"></script>
 </head>
@@ -14,15 +15,53 @@
 <body>
   <div class="demo-container" style="display: flex; flex-direction: column;">
     <div class="demo-top-bar" >
-      top bar 1
-    </div>
-    <div style="flex: 1;">
-      row 1
-    </div>
-    <div style="flex: 1;">
-      row 1
-    </div>
+      <h3>
+        mpm demo
+      </h3>
 
+      <div class="slider-container">
+        <input id="downsampling-slider" class="slider" type="range", min="0" max="100" />
+        <div class="slider-value-container">
+          <div class="slider-label">Downsampling</div>
+          <div id="downsampling-value"></div>
+        </div>
+      </div>
+
+      <div class="slider-container">
+        <input id="clarity-threshold-slider" class="slider" type="range", min="0" max="100" />
+        <div class="slider-value-container">
+          <div class="slider-label">Clarity threshold</div>
+          <div id="clarity-threshold-value"></div>
+        </div>
+      </div>
+
+      <div class="slider-container">
+        <input id="clarity-tolerance-slider" class="slider" type="range", min="0" max="100" />
+        <div class="slider-value-container">
+          <div class="slider-label">Clarity tolerance</div>
+          <div id="clarity-tolerance-value"></div>
+        </div>
+      </div>
+
+      <div class="slider-container">
+        <input id="period-tolerance-slider" class="slider" type="range", min="0" max="100" />
+        <div class="slider-value-container">
+          <div class="slider-label">Period tolerance</div>
+          <div id="period-tolerance-value"></div>
+        </div>
+      </div>
+
+      <button class="button" >Pause</button>
+
+    </div>
+    <div id="pitch-canvas-container" style="flex: 1; overflow: hidden; background: black;">
+      <canvas id="pitch-canvas">
+      </canvas>
+    </div>
+    <div id="nsdf-canvas-container" style="flex: 1; overflow: hidden; background: orange;">
+      <canvas id="nsdf-canvas">
+      </canvas>
+    </div>
     <div id="mic-access-modal">
       <div class="mic-access-modal-content">
         <div id="mic-access-prompt">

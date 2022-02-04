@@ -22,6 +22,9 @@ const onMicAccessButtonClick = (e) => {
   })
 }
 
-window.addEventListener('DOMContentLoaded', (event) => {
+/*
+name, min, max, default
+*/
+const registerControls = (controls) => {
 
-})
+}
