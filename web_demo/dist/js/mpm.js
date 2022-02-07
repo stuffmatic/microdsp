@@ -1,7 +1,7 @@
 // Worklet config vars
-const workletNodeName = "demo-wasm-processor"
-const workletProcessorUrl = "/js/demo_wasm_processor.js"
-const wasmUrl = "/wasm/demo_synth.wasm"
+const workletNodeName = "mpm-worklet-processor"
+const workletProcessorUrl = "/js/mpm_worklet_processor.js"
+const wasmUrl = "/wasm/microear_wasm.wasm"
 
 let fakeMeasurementPhase = 0;
 let fakeMeasurementPhaseDelta = 0.01;
@@ -58,7 +58,7 @@ class NSDFCanvas extends CanvasBase {
         this.yToScreen(nsdf[i], yMin, yMax)
       )
     }
-    this.context.strokeStyle = "#e0e0e0"
+    this.context.strokeStyle = "#a0a0a0"
     this.context.stroke()
 
     // Key maxima
@@ -87,10 +87,10 @@ class NSDFCanvas extends CanvasBase {
       const y = this.measurement.keyMaxPositions[2 * this.measurement.selectedKeyMaxIndex + 1]
       // Clarity
       const yScreenClarity = this.yToScreen(y, yMin, yMax)
-      this.drawLine(0, yScreenClarity, this.xToScreen(1, 0, 1), yScreenClarity, "red" )
+      this.drawLine(0, yScreenClarity, this.xToScreen(1, 0, 1), yScreenClarity, "rgba(255, 0, 0, " + this.measurement.clarity + ")")
       // Lag
       const xCreenLag = this.xToScreen(x, 0, n - 1)
-      this.drawLine(xCreenLag, this.yToScreen(0, 0, 1), xCreenLag, this.yToScreen(1, 0, 1), "blue" )
+      this.drawLine(xCreenLag, this.yToScreen(0, 0, 1), xCreenLag, this.yToScreen(1, 0, 1), "rgba(0, 0, 255, " + this.measurement.clarity + ")")
     }
   }
 }
@@ -115,8 +115,11 @@ Measurement:
   nsdf: [...],
   keyMaxPositions: [x0, y0, x1, y1, ...],
   selectedKeyMaxIndex
-  pitch,
-  clarity
+  frequency,
+  clarity,
+  noteNumber,
+  rmsLevel,
+  peakLevel
 }
 */
 const measurements = []
@@ -134,12 +137,14 @@ const addMeasurement = (m) => {
 
 const onWorkletNodeCreated = (node) => {
   node.port.onmessage = m => {
-    // console.log("mic level " + m.data.value.toFixed(3))
+    if (m.data.type == "mpmResult") {
+      addMeasurement(m.data.value)
+    }
   }
   // Fake measurements
-  setInterval((e) => {
+  /*setInterval((e) => {
     addMeasurement(createFakeMeasurement())
-  }, 10)
+  }, 10)*/
 }
 
 const refreshCanvasSizes = () => {
@@ -164,6 +169,4 @@ window.addEventListener('DOMContentLoaded', (event) => {
     refreshCanvasSizes()
     renderCanvases()
   })
-
-
 })

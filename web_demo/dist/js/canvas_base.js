@@ -21,6 +21,7 @@ class CanvasBase {
     const scale = window.devicePixelRatio
     this.context.canvas.width = scale * width
     this.context.canvas.height = scale * height
+    this.context.scale(1 / scale, 1 / scale)
 
     const pr = window.devicePixelRatio
     const lineWidth = 1.5

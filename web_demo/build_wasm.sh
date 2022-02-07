@@ -1,5 +1,5 @@
 WASM_FILE=microear_wasm.wasm
-TARGET_DIR=../web_demo/wasm
+TARGET_DIR=../web_demo/dist/wasm
 
 cd ../microear_wasm
 
