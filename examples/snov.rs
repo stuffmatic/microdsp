@@ -1,5 +1,4 @@
 use microear::{
-    common::window_function::HannWindow,
     snov::{compression_function::HardKneeCompression, detector::SpectralNoveltyDetector},
 };
 use dev_helpers::portaudio as pa;
@@ -85,7 +84,7 @@ enum DetectorMessage {
 
 const WINDOW_SIZE: usize = 1024;
 
-type DetectorType = SpectralNoveltyDetector<HannWindow, HardKneeCompression>;
+type DetectorType = SpectralNoveltyDetector<HardKneeCompression>;
 struct NoveltyDetectorProcessor {
     detector: DetectorType,
 }

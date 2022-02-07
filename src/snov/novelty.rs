@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec};
 
 use crate::{
-    common::{fft::real_fft_in_place, window_function::WindowFunction},
+    common::{fft::real_fft_in_place, window_function::{WindowFunction, apply_window_function}},
     snov::compression_function::CompressionFunction,
 };
 
@@ -81,10 +81,10 @@ impl SpectralFluxNovelty {
         &self.d_power
     }
 
-    pub fn process_window<W: WindowFunction, C: CompressionFunction>(
+    pub fn process_window<C: CompressionFunction>(
         &mut self,
         window: &[f32],
-        window_func: &W,
+        window_func: WindowFunction,
         compression_func: &C,
     ) -> bool {
         let (power, power_prev) = if self.prev_is_1 {
@@ -98,7 +98,7 @@ impl SpectralFluxNovelty {
         }
 
         self.d_power.copy_from_slice(window);
-        window_func.apply(&mut self.d_power);
+        apply_window_function(window_func, &mut self.d_power);
         let fft = real_fft_in_place(&mut self.d_power);
         // Clear real-valued coefficient at the Nyquist frequency, which is packed into the
         // imaginary part of the DC bin.

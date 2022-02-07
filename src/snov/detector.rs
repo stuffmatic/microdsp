@@ -1,31 +1,31 @@
-use crate::common::window_function::{HannWindow, WindowFunction};
+use crate::common::window_function::WindowFunction;
 use crate::common::window_processor::WindowProcessor;
 use crate::snov::{
     compression_function::{CompressionFunction, HardKneeCompression},
     novelty::SpectralFluxNovelty,
 };
 
-pub struct SpectralNoveltyDetector<W: WindowFunction, C: CompressionFunction> {
+pub struct SpectralNoveltyDetector<C: CompressionFunction> {
     window_processor: WindowProcessor,
     novelty: SpectralFluxNovelty,
-    window_func: W,
+    window_func: WindowFunction,
     compression_func: C,
 }
 
-impl SpectralNoveltyDetector<HannWindow, HardKneeCompression> {
+impl SpectralNoveltyDetector<HardKneeCompression> {
     pub fn new(window_size: usize) -> Self {
         SpectralNoveltyDetector {
             window_processor: WindowProcessor::new(window_size, window_size / 2, 1),
-            window_func: HannWindow::new(),
+            window_func: WindowFunction::Hann,
             compression_func: HardKneeCompression::new(),
             novelty: SpectralFluxNovelty::new(window_size),
         }
     }
 }
 
-impl<W: WindowFunction, C: CompressionFunction> SpectralNoveltyDetector<W, C> {
+impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
     pub fn from_options(
-        window_func: W,
+        window_func: WindowFunction,
         compression_func: C,
         downsampled_window_size: usize,
         downsampling: usize,
@@ -43,10 +43,6 @@ impl<W: WindowFunction, C: CompressionFunction> SpectralNoveltyDetector<W, C> {
         }
     }
 
-    pub fn window_function(&mut self) -> &W {
-        &mut self.window_func
-    }
-
     pub fn compression_function(&mut self) -> &C {
         &mut self.compression_func
     }
@@ -61,7 +57,7 @@ impl<W: WindowFunction, C: CompressionFunction> SpectralNoveltyDetector<W, C> {
         F: FnMut(&SpectralFluxNovelty),
     {
         let novelty = &mut self.novelty;
-        let window_func = &self.window_func;
+        let window_func = self.window_func;
         let compression_func = &self.compression_func;
         self.window_processor.process(buffer, |window| {
             if novelty.process_window(window, window_func, compression_func) {
