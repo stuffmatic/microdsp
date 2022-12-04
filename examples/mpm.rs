@@ -2,10 +2,10 @@ use std::thread;
 use std::time::Duration;
 
 use dev_helpers::note_number_to_string;
-use dev_helpers::AudioEngine;
+use dev_helpers::AudioHost;
 use dev_helpers::AudioProcessor;
 
-use microear::mpm::PitchDetector;
+use microdsp::mpm::PitchDetector;
 
 struct PitchReading {
     midi_note_number: f32,
@@ -51,7 +51,7 @@ fn main() {
     let sample_rate = 44100.0;
     let processor = MPMAudioProcessor::new(sample_rate);
     // Create an audio engine that provides the audio processor with real time input samples
-    let mut audio_engine = AudioEngine::new(sample_rate, processor);
+    let mut audio_engine = AudioHost::new(sample_rate, processor);
     println!("Started audio engine, listening for input. Whistle!");
 
     let poll_interval_ms = 30;

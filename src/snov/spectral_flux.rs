@@ -6,7 +6,7 @@ use crate::{
 };
 
 // https://www.audiolabs-erlangen.de/resources/MIR/FMP/C6/C6S1_NoveltySpectral.html
-pub struct SpectralFluxNovelty {
+pub struct SpectralFlux {
     power_0: Box<[f32]>,
     power_1: Box<[f32]>,
     d_power: Box<[f32]>,
@@ -31,10 +31,10 @@ impl AllocatedBuffers {
     }
 }
 
-impl SpectralFluxNovelty {
+impl SpectralFlux {
     pub fn new(window_size: usize) -> Self {
         let buffers = AllocatedBuffers::new(window_size);
-        SpectralFluxNovelty {
+        SpectralFlux {
             power_0: buffers.power_0,
             power_1: buffers.power_1,
             d_power: buffers.d_power,

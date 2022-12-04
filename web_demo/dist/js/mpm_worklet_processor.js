@@ -10,12 +10,6 @@ class MpmWorkletProcessor extends AudioWorkletProcessor {
           })
           break
         }
-        case "toggleTone": {
-          if (this.wasm) {
-            this.wasm.exports.toggle_tone()
-          }
-          break
-        }
       }
     }
   }
@@ -23,31 +17,13 @@ class MpmWorkletProcessor extends AudioWorkletProcessor {
   onWasmInstantiated(wasm) {
     this.wasm = wasm
 
-    // Audio worklets seem to use a fixed buffer size of 128
-    const bufferSize = 128
-
-    // Allocate sample buffers that can be passed to the wasm code
-    this.inBufferPointer = this.wasm.exports.allocate_f32_array(bufferSize)
-    this.inBuffer = new Float32Array(
+    // Allocate buffer used for passing data to/from wasm
+    const scratchBufferSize = 4096
+    this.scratchBufferPointer = this.wasm.exports.allocate_f32_array(scratchBufferSize)
+    this.scratchBuffer = new Float32Array(
       this.wasm.exports.memory.buffer,
-      this.inBufferPointer,
-      bufferSize
-    )
-
-    const maxNsdfSize = 4096;
-    this.nsdfBufferPointer = this.wasm.exports.allocate_f32_array(maxNsdfSize)
-    this.nsdfBuffer = new Float32Array(
-      this.wasm.exports.memory.buffer,
-      this.nsdfBufferPointer,
-      maxNsdfSize
-    )
-
-    const maxKeyMaxCount = 128;
-    this.keyMaxBufferPointer = this.wasm.exports.allocate_f32_array(maxKeyMaxCount)
-    this.keyMaxBuffer = new Float32Array(
-      this.wasm.exports.memory.buffer,
-      this.keyMaxBufferPointer,
-      maxKeyMaxCount
+      this.scratchBufferPointer,
+      scratchBufferSize
     )
   }
 
@@ -59,22 +35,22 @@ class MpmWorkletProcessor extends AudioWorkletProcessor {
       const inputChannels = inputs[0]
       if (inputChannels.length > 0) {
         // Copy input samples to the wasm input buffer
-        this.inBuffer.set(inputChannels[0])
+        this.scratchBuffer.set(inputChannels[0])
         // Process input buffer
-        if (this.wasm.exports.mpm_process(this.inBufferPointer, this.inBuffer.length)) {
-          // nsdf
-          const nsdfLength = this.wasm.exports.mpm_get_nsdf(this.nsdfBufferPointer, this.nsdfBuffer.length)
+        if (this.wasm.exports.mpm_process(this.scratchBufferPointer, inputChannels[0].length)) {
+          // compressed power spectrum
+          const nsdfLength = this.wasm.exports.mpm_get_nsdf(this.scratchBufferPointer, this.scratchBuffer.length)
           const nsdf = new Float32Array(nsdfLength)
-          const frequency = this.wasm.exports.mpm_get_frequency();
-          nsdf.set(this.nsdfBuffer.slice(0, nsdfLength))
+          nsdf.set(this.scratchBuffer.slice(0, nsdfLength))
 
           // key maxima
           const selectedKeyMaxIndex = this.wasm.exports.mpm_get_selected_key_max_index();
-          const keyMaxCount = this.wasm.exports.mpm_get_key_maxima(this.keyMaxBufferPointer, this.keyMaxBuffer.length)
+          const keyMaxCount = this.wasm.exports.mpm_get_key_maxima(this.scratchBufferPointer, this.scratchBuffer.length)
           const keyMaxPositions = new Float32Array(2 * keyMaxCount)
-          keyMaxPositions.set(this.keyMaxBuffer.slice(0, keyMaxPositions.length))
+          keyMaxPositions.set(this.scratchBuffer.slice(0, keyMaxPositions.length))
 
           // misc
+          const frequency = this.wasm.exports.mpm_get_frequency();
           const noteNumber = this.wasm.exports.mpm_get_midi_note_number();
           const clarity = this.wasm.exports.mpm_get_clarity();
           const rmsLevel = this.wasm.exports.mpm_get_window_rms_level();

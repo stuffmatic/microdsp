@@ -1,7 +1,7 @@
-WASM_FILE=microear_wasm.wasm
+WASM_FILE=microdsp_wrapper.wasm
 TARGET_DIR=../web_demo/dist/wasm
 
-cd ../microear_wasm
+cd ../microdsp_wrapper
 
 cargo build --target wasm32-unknown-unknown --release
 

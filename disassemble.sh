@@ -2,7 +2,7 @@ PROFILE=$1
 # TARGET=thumbv7em-none-eabihf
 TARGET=thumbv8m.main-none-eabihf
 
-LIB_NAME=libmicroear.rlib
+LIB_NAME=libmicrodsp.rlib
 OUTPUT_FILE=disassembly.$PROFILE.$TARGET.txt
 
 if [[ $PROFILE == 'debug' ]]; then

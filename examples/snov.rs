@@ -1,4 +1,4 @@
-use microear::{
+use microdsp::{
     snov::{compression_function::HardKneeCompression, detector::SpectralNoveltyDetector},
 };
 use dev_helpers::portaudio as pa;

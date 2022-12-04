@@ -2,12 +2,12 @@ use crate::common::window_function::WindowFunction;
 use crate::common::window_processor::WindowProcessor;
 use crate::snov::{
     compression_function::{CompressionFunction, HardKneeCompression},
-    novelty::SpectralFluxNovelty,
+    spectral_flux::SpectralFlux,
 };
 
 pub struct SpectralNoveltyDetector<C: CompressionFunction> {
     window_processor: WindowProcessor,
-    novelty: SpectralFluxNovelty,
+    novelty: SpectralFlux,
     window_func: WindowFunction,
     compression_func: C,
 }
@@ -18,7 +18,7 @@ impl SpectralNoveltyDetector<HardKneeCompression> {
             window_processor: WindowProcessor::new(window_size, window_size / 2, 1),
             window_func: WindowFunction::Hann,
             compression_func: HardKneeCompression::new(),
-            novelty: SpectralFluxNovelty::new(window_size),
+            novelty: SpectralFlux::new(window_size),
         }
     }
 }
@@ -39,7 +39,7 @@ impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
             ),
             window_func,
             compression_func,
-            novelty: SpectralFluxNovelty::new(downsampled_window_size),
+            novelty: SpectralFlux::new(downsampled_window_size),
         }
     }
 
@@ -52,9 +52,13 @@ impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
         self.novelty.clear()
     }
 
+    pub fn novelty(&self) -> &SpectralFlux {
+        &self.novelty
+    }
+
     pub fn process<F>(&mut self, buffer: &[f32], mut handler: F)
     where
-        F: FnMut(&SpectralFluxNovelty),
+        F: FnMut(&SpectralFlux),
     {
         let novelty = &mut self.novelty;
         let window_func = self.window_func;

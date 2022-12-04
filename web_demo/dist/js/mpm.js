@@ -1,7 +1,7 @@
 // Worklet config vars
 const workletNodeName = "mpm-worklet-processor"
 const workletProcessorUrl = "/js/mpm_worklet_processor.js"
-const wasmUrl = "/wasm/microear_wasm.wasm"
+const wasmUrl = "/wasm/microdsp_wrapper.wasm"
 
 let fakeMeasurementPhase = 0;
 let fakeMeasurementPhaseDelta = 0.01;
@@ -95,17 +95,10 @@ class NSDFCanvas extends CanvasBase {
   }
 }
 
-class PitchCanvas extends CanvasBase {
+class PitchCanvas extends LivePlotCanvas {
   setMeasurement(m) {
-    this.measurement = m
-  }
-
-  render() {
-    if (!this.measurement) {
-      return
-    }
-
-    this.clear()
+    const dataPoint = [m.noteNumber, m.clarity, m.rmsLevel, m.peakLevel]
+    this.addDataPoint(dataPoint)
   }
 }
 
@@ -122,17 +115,13 @@ Measurement:
   peakLevel
 }
 */
-const measurements = []
 
 pitchCanvas = null
 nsdfCanvas = null
 
 const addMeasurement = (m) => {
   nsdfCanvas.setMeasurement(m)
-  nsdfCanvas.render()
-
   pitchCanvas.setMeasurement(m)
-  pitchCanvas.render()
 }
 
 const onWorkletNodeCreated = (node) => {
@@ -156,14 +145,22 @@ const refreshCanvasSizes = () => {
 const renderCanvases = () => {
   pitchCanvas.render()
   nsdfCanvas.render()
+  window.requestAnimationFrame(renderCanvases)
 }
 
 window.addEventListener('DOMContentLoaded', (event) => {
-  pitchCanvas = new PitchCanvas("pitch-canvas")
+  pitchCanvas = new PitchCanvas(
+    "pitch-canvas",
+    [{ min: 40, max: 80}, { min: 0, max: 1}, { min: 0, max: 1}, { min: 0, max: 1}],
+    ["blue", "red", "gray", "black"],
+  )
   nsdfCanvas = new NSDFCanvas("nsdf-canvas")
 
   refreshCanvasSizes()
   renderCanvases()
+
+  window.requestAnimationFrame(renderCanvases)
+
 
   window.addEventListener("resize", (ev) => {
     refreshCanvasSizes()

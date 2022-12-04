@@ -1,10 +1,10 @@
 [package]
-name = "microear"
-version = "0.1.0"
+name = "microdsp"
+version = "0.1.0-alpha"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
 description = "TODO"
-repository = "https://github.com/stuffmatic/microear/"
+repository = "https://github.com/stuffmatic/microdsp/"
 license = "MIT"
 categories = ["no-std", "multimedia::audio", "embedded"]
 

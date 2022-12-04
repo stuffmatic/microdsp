@@ -1,5 +1,6 @@
 use alloc::{boxed::Box, vec};
 
+///
 pub struct WindowProcessor {
     downsampled_window: Box<[f32]>,
     downsampled_window_size: usize,

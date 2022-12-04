@@ -9,6 +9,7 @@ const onMicAccessButtonClick = (e) => {
     workletNodeName,
     workletProcessorUrl,
     wasmUrl,
+    microphoneMode: "required"
   }
 
   startAudioWorklet(options).then((workletNode) => {

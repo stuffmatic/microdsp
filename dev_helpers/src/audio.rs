@@ -13,13 +13,13 @@ pub trait AudioProcessor<S> {
     ) -> bool;
 }
 
-pub struct AudioEngine<S> {
+pub struct AudioHost<S> {
     pa_stream: pa::Stream<pa::NonBlocking, pa::Duplex<f32, f32>>,
     pub to_audio_thread: rtrb::Producer<S>,
     pub from_audio_thread: rtrb::Consumer<S>,
 }
 
-impl<S> AudioEngine<S>
+impl<S> AudioHost<S>
 where
     S: 'static,
 {
@@ -61,7 +61,7 @@ where
         };
         let mut stream = pa.open_non_blocking_stream(settings, pa_callback).unwrap();
         stream.start().unwrap();
-        AudioEngine {
+        AudioHost {
             pa_stream: stream,
             to_audio_thread,
             from_audio_thread,

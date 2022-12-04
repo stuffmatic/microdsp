@@ -48,17 +48,27 @@ impl HardKneeCompression {
     }
 
     pub fn from_options(x_knee: f32, y_knee: f32) -> Self {
+        let mut instance = HardKneeCompression {
+            k_0: 0.,
+            k_1: 0.,
+            m_0: 0.,
+            m_1: 0.,
+            x_knee: 0.,
+        };
+        instance.set(x_knee, y_knee);
+        instance
+    }
+
+    pub fn set(&mut self, x_knee: f32, y_knee: f32) {
         let k_0 = y_knee / x_knee;
         let m_0 = 0.;
         let k_1 = (y_knee - 1.) / (x_knee - 1.);
         let m_1 = 1. - k_1;
-        HardKneeCompression {
-            x_knee,
-            k_0,
-            m_0,
-            k_1,
-            m_1,
-        }
+        self.k_0 = k_0;
+        self.m_0 = m_0;
+        self.k_1 = k_1;
+        self.m_1 = m_1;
+        self.x_knee = x_knee;
     }
 }
 

@@ -2,7 +2,7 @@ mod audio;
 
 pub use portaudio;
 pub use rtrb;
-pub use audio::AudioEngine;
+pub use audio::AudioHost;
 pub use audio::AudioProcessor;
 
 pub fn note_number_to_string(note_number: f32) -> String {

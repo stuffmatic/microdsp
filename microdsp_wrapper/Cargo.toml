@@ -1,5 +1,5 @@
 [package]
-name = "microear_wasm"
+name = "microdsp_wrapper"
 version = "0.1.0"
 authors = ["Per <per@stuffmatic.com>"]
 edition = "2018"
@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-microear = { path = "./.."}
+microdsp = { path = "./.."}
 lazy_static = "1.4.0"
 
 [lib]
