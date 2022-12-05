@@ -5,25 +5,25 @@ use crate::snov::{
     spectral_flux::SpectralFlux,
 };
 
-pub struct SpectralNoveltyDetector<C: CompressionFunction> {
+pub struct SpectralFluxNoveltyDetector<C: CompressionFunction> {
     window_processor: WindowProcessor,
-    novelty: SpectralFlux,
+    flux: SpectralFlux,
     window_func: WindowFunction,
     compression_func: C,
 }
 
-impl SpectralNoveltyDetector<HardKneeCompression> {
+impl SpectralFluxNoveltyDetector<HardKneeCompression> {
     pub fn new(window_size: usize) -> Self {
-        SpectralNoveltyDetector {
+        SpectralFluxNoveltyDetector {
             window_processor: WindowProcessor::new(window_size, window_size / 2, 1),
             window_func: WindowFunction::Hann,
             compression_func: HardKneeCompression::new(),
-            novelty: SpectralFlux::new(window_size),
+            flux: SpectralFlux::new(window_size),
         }
     }
 }
 
-impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
+impl<C: CompressionFunction> SpectralFluxNoveltyDetector<C> {
     pub fn from_options(
         window_func: WindowFunction,
         compression_func: C,
@@ -31,7 +31,7 @@ impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
         downsampling: usize,
         downsampled_hop_size: usize,
     ) -> Self {
-        SpectralNoveltyDetector {
+        SpectralFluxNoveltyDetector {
             window_processor: WindowProcessor::new(
                 downsampled_window_size,
                 downsampled_hop_size,
@@ -39,7 +39,7 @@ impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
             ),
             window_func,
             compression_func,
-            novelty: SpectralFlux::new(downsampled_window_size),
+            flux: SpectralFlux::new(downsampled_window_size),
         }
     }
 
@@ -49,23 +49,23 @@ impl<C: CompressionFunction> SpectralNoveltyDetector<C> {
 
     pub fn reset(&mut self) {
         self.window_processor.reset();
-        self.novelty.clear()
+        self.flux.clear()
     }
 
     pub fn novelty(&self) -> &SpectralFlux {
-        &self.novelty
+        &self.flux
     }
 
     pub fn process<F>(&mut self, buffer: &[f32], mut handler: F)
     where
         F: FnMut(&SpectralFlux),
     {
-        let novelty = &mut self.novelty;
+        let flux = &mut self.flux;
         let window_func = self.window_func;
         let compression_func = &self.compression_func;
         self.window_processor.process(buffer, |window| {
-            if novelty.process_window(window, window_func, compression_func) {
-                handler(&novelty)
+            if flux.process_window(window, window_func, compression_func) {
+                handler(&flux)
             }
         })
     }

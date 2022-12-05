@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec};
 
 use crate::{
-    common::{fft::real_fft_in_place, window_function::{WindowFunction, apply_window_function}},
+    common::{fft::real_fft, window_function::{WindowFunction, apply_window_function}},
     snov::compression_function::CompressionFunction,
 };
 
@@ -99,7 +99,7 @@ impl SpectralFlux {
 
         self.d_power.copy_from_slice(window);
         apply_window_function(window_func, &mut self.d_power);
-        let fft = real_fft_in_place(&mut self.d_power);
+        let fft = real_fft(&mut self.d_power);
         // Clear real-valued coefficient at the Nyquist frequency, which is packed into the
         // imaginary part of the DC bin.
         fft[0].im = 0.;

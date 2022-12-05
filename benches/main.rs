@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use microdsp::mpm::MpmPitchResult;
-use microdsp::mpm::PitchDetector;
+use microdsp::mpm::MpmPitchDetector;
 
 fn run_mpm_benchmark(id: &str, c: &mut Criterion, window_size: usize, lag_count: usize) {
     let mut result = MpmPitchResult::new(window_size, lag_count);
@@ -33,7 +33,7 @@ fn run_detector_benchmark(
     window_size: usize,
     downsampling_factor: usize,
 ) {
-    let mut detector = PitchDetector::from_options(
+    let mut detector = MpmPitchDetector::from_options(
         44100.,
         window_size,
         window_size,

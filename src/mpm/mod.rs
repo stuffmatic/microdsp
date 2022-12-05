@@ -10,7 +10,7 @@
 //! * Downsampling is supported, increasing performance at the expense of frequency resolution.
 //!
 //! # Examples
-//! ## High level API
+//! ## Streaming API
 //! Handles collecting input samples into possibly overlapping windows and processing each newly filled window.
 //! ```
 //! use microdsp::mpm::Detector;
@@ -42,10 +42,10 @@
 //!     }
 //! });
 //! ```
-//! ## Low level API
+//! ## Single window API
 //! Used to process a window directly. Useful if you want to roll your own window handling.
 //! ```
-//! use micro_mpm::Result;
+//! use microdsp::mpm::Result;
 //!
 //! // Create a Result instance
 //! let sample_rate = 44100.0;
@@ -85,11 +85,11 @@
 //! method, which is the recommended way to determine if the input signal has a
 //! strong fundamental frequency.
 
-mod detector;
-mod key_maximum;
+mod mpm_pitch_detector;
+mod key_max;
 mod result;
 mod util;
 
-pub use detector::PitchDetector;
-pub use key_maximum::KeyMaximum;
+pub use mpm_pitch_detector::MpmPitchDetector;
+pub use key_max::KeyMax;
 pub use result::MpmPitchResult;

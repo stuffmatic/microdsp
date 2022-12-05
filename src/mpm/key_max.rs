@@ -1,7 +1,7 @@
 #[derive(Copy, Clone)]
 /// A key maximum, i.e an NSDF maximum that may or may not correspond
 /// to the pitch period.
-pub struct KeyMaximum {
+pub struct KeyMax {
     /// The index into the NSDF array corresponding to this maximum
     pub lag_index: usize,
     /// The NSDF value at `lag_index` for this maximum
@@ -13,9 +13,9 @@ pub struct KeyMaximum {
     pub lag: f32,
 }
 
-impl KeyMaximum {
+impl KeyMax {
     pub(crate) fn new() -> Self {
-        KeyMaximum {
+        KeyMax {
             lag_index: 0,
             value_at_lag_index: 0.0,
             value: 0.0,
@@ -58,7 +58,7 @@ mod tests {
     fn key_maximum_interpolation() {
         {
             let nsdf: [f32; 4] = [0.0, 0.0, 3.0, 0.0];
-            let mut key_max = KeyMaximum::new();
+            let mut key_max = KeyMax::new();
             key_max.set(&nsdf, 2);
             assert!((key_max.lag - 2.0).abs() <= f32::EPSILON);
             assert!((key_max.value - 3.0).abs() <= f32::EPSILON);
@@ -66,7 +66,7 @@ mod tests {
 
         {
             let nsdf: [f32; 3] = [-2.0, 0.0, -1.0];
-            let mut key_max = KeyMaximum::new();
+            let mut key_max = KeyMax::new();
             key_max.set(&nsdf, 1);
             assert!((key_max.lag - 1.1666666_f32).abs() <= f32::EPSILON);
         }

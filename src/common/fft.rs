@@ -1,6 +1,7 @@
 use core::convert::TryInto;
 
-pub fn real_fft_in_place(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
+/// Real, in-place FFT.
+pub fn real_fft(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
     let fft_size = buffer.len();
     match fft_size {
         8 => microfft::real::rfft_8(buffer.try_into().unwrap()),

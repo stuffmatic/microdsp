@@ -1,6 +1,7 @@
 use crate::alloc::boxed::Box;
 use crate::alloc::vec;
-use crate::mpm::key_maximum::KeyMaximum;
+use crate::common::autocorr::{autocorr_fft, autocorr_fft_size};
+use crate::mpm::key_max::KeyMax;
 use crate::mpm::util;
 use micromath::F32Ext;
 
@@ -28,7 +29,7 @@ pub struct MpmPitchResult {
     /// the result is considered invalid.
     pub key_max_count: usize,
     /// A fixed array of key maxima. The first `key_max_count` maxima are valid.
-    pub key_maxima: [KeyMaximum; MAX_KEY_MAXIMA_COUNT],
+    pub key_maxima: [KeyMax; MAX_KEY_MAXIMA_COUNT],
     /// The index into `key_maxima` of the selected key maximum
     pub selected_key_max_index: usize,
     ///
@@ -42,9 +43,9 @@ impl MpmPitchResult {
         let window = (vec![0.0; window_size]).into_boxed_slice();
         let nsdf = (vec![0.0; lag_count]).into_boxed_slice();
         let r_prime =
-            (vec![0.0; util::autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
+            (vec![0.0; autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
         let scratch_buffer =
-            (vec![0.0; util::autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
+            (vec![0.0; autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
 
         // Create the instance
         MpmPitchResult {
@@ -56,7 +57,7 @@ impl MpmPitchResult {
             r_prime,
             scratch_buffer,
             key_max_count: 0,
-            key_maxima: [KeyMaximum::new(); MAX_KEY_MAXIMA_COUNT],
+            key_maxima: [KeyMax::new(); MAX_KEY_MAXIMA_COUNT],
             selected_key_max_index: 0,
             pitch_period: 0.0,
         }
@@ -68,40 +69,6 @@ impl MpmPitchResult {
         self.compute_nsdf();
         self.perform_peak_picking();
         self.compute_pitch(sample_rate);
-    }
-
-    /// The maximum absolute value of the input window.
-    pub fn window_peak(&self) -> f32 {
-        let mut max: f32 = 0.0;
-        for sample in self.window.iter() {
-            let value = sample.abs();
-            if value > max {
-                max = value
-            }
-        }
-        max
-    }
-
-    /// The maximum absolute value of the input window, in dB relative to 1,
-    /// i.e 0 dB corresponds to a level of 1.
-    pub fn window_peak_db(&self) -> f32 {
-        20. * F32Ext::log10(self.window_peak())
-    }
-
-    /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
-    /// of the input window.
-    pub fn window_rms(&self) -> f32 {
-        let mut rms: f32 = 0.;
-        for sample in self.window.iter() {
-            rms += sample * sample
-        }
-        F32Ext::sqrt(rms / (self.window.len() as f32))
-    }
-
-    /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
-    /// of the input window, in dB relative to 1, i.e 0 dB corresponds to a level of 1.
-    pub fn window_rms_db(&self) -> f32 {
-        20. * F32Ext::log10(self.window_rms())
     }
 
     /// Indicates if the detection result has a valid pitch estimate. Note that this does not necessarily
@@ -169,7 +136,7 @@ impl MpmPitchResult {
         is_tone
     }
 
-    fn key_max_closest_to_double_period(&self) -> Option<KeyMaximum> {
+    fn key_max_closest_to_double_period(&self) -> Option<KeyMax> {
         if self.key_max_count == 0 {
             return None;
         }
@@ -315,7 +282,7 @@ impl MpmPitchResult {
         let mut r_prime = &mut self.r_prime[..];
         let mut scratch_buffer = &mut self.scratch_buffer[..];
 
-        util::autocorr_fft(
+        autocorr_fft(
             &self.window[..],
             &mut r_prime,
             &mut scratch_buffer,

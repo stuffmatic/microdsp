@@ -5,7 +5,7 @@ use dev_helpers::note_number_to_string;
 use dev_helpers::AudioHost;
 use dev_helpers::AudioProcessor;
 
-use microdsp::mpm::PitchDetector;
+use microdsp::mpm::MpmPitchDetector;
 
 struct PitchReading {
     midi_note_number: f32,
@@ -13,13 +13,13 @@ struct PitchReading {
 }
 
 struct MPMAudioProcessor {
-    pitch_detector: PitchDetector,
+    pitch_detector: MpmPitchDetector,
 }
 
 impl MPMAudioProcessor {
     fn new(sample_rate: f32) -> MPMAudioProcessor {
         MPMAudioProcessor {
-            pitch_detector: PitchDetector::new(sample_rate, 1024, 3 * 256),
+            pitch_detector: MpmPitchDetector::new(sample_rate, 1024, 3 * 256),
         }
     }
 }
@@ -51,7 +51,7 @@ fn main() {
     let sample_rate = 44100.0;
     let processor = MPMAudioProcessor::new(sample_rate);
     // Create an audio engine that provides the audio processor with real time input samples
-    let mut audio_engine = AudioHost::new(sample_rate, processor);
+    let mut audio_host = AudioHost::new(sample_rate, processor);
     println!("Started audio engine, listening for input. Whistle!");
 
     let poll_interval_ms = 30;
@@ -60,7 +60,7 @@ fn main() {
         thread::sleep(Duration::from_millis(poll_interval_ms));
 
         loop {
-            match audio_engine.from_audio_thread.pop() {
+            match audio_host.from_audio_thread.pop() {
                 Ok(reading) => println!(
                     "{} | {:.2} Hz",
                     note_number_to_string(reading.midi_note_number),

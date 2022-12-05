@@ -126,6 +126,7 @@ mod tests {
             *value = index as f32;
         }
 
+        // TODO: actual tests
         processor.process(&buffer[..1], |window| {
             /*for value in window {
                 // assert_eq!(*value, processed_index as f32);

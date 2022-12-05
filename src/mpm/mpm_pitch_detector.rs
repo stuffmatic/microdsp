@@ -1,15 +1,15 @@
 use crate::common::window_processor::WindowProcessor;
 use crate::mpm::result::MpmPitchResult;
 
-pub struct PitchDetector {
+pub struct MpmPitchDetector {
     sample_rate: f32,
     window_processor: WindowProcessor,
     result: MpmPitchResult,
 }
 
-impl PitchDetector {
+impl MpmPitchDetector {
     pub fn new(sample_rate: f32, window_size: usize, hop_size: usize) -> Self {
-        PitchDetector::from_options(sample_rate, window_size, hop_size, window_size / 2, 1)
+        MpmPitchDetector::from_options(sample_rate, window_size, hop_size, window_size / 2, 1)
     }
 
     pub fn from_options(
@@ -21,7 +21,7 @@ impl PitchDetector {
     ) -> Self {
         // TODO: validate lag count
 
-        PitchDetector {
+        MpmPitchDetector {
             sample_rate,
             result: MpmPitchResult::new(downsampled_window_size, downsampled_lag_count),
             window_processor: WindowProcessor::new(
@@ -91,7 +91,7 @@ mod tests {
         let sample_rate: f32 = 44100.0;
         let window = generate_sine(sample_rate, frequency, window_size);
 
-        let mut detector = PitchDetector::new(sample_rate, window_size, window_distance);
+        let mut detector = MpmPitchDetector::new(sample_rate, window_size, window_distance);
 
         detector.process(&window[..], |result: &MpmPitchResult| {
             assert!((frequency - result.frequency).abs() <= 0.001);
@@ -107,7 +107,7 @@ mod tests {
         let sample_rate: f32 = 44100.0;
         let window = generate_sine(sample_rate, frequency, window_size);
         let downsampling_factor = 4;
-        let mut detector = PitchDetector::from_options(
+        let mut detector = MpmPitchDetector::from_options(
             sample_rate,
             window_size,
             window_distance,
@@ -129,38 +129,38 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_zero_downsampling_factor() {
-        let _ = PitchDetector::from_options(44100., 512, 256, 256, 0);
+        let _ = MpmPitchDetector::from_options(44100., 512, 256, 256, 0);
     }
 
     #[test]
     #[should_panic]
     fn test_nondivisible_downsampling_factor_1() {
         // Make sure we panic if the window size is not evenly divisible by the downsampling factor
-        let _ = PitchDetector::from_options(44100., 521, 256, 256, 4);
+        let _ = MpmPitchDetector::from_options(44100., 521, 256, 256, 4);
     }
 
     #[test]
     #[should_panic]
     fn test_nondivisible_downsampling_factor_2() {
         // Make sure we panic if the window distance is not evenly divisible by the downsampling factor
-        let _ = PitchDetector::from_options(44100., 512, 250, 256, 4);
+        let _ = MpmPitchDetector::from_options(44100., 512, 250, 256, 4);
     }
 
     #[test]
     #[should_panic]
     fn test_zero_window_size() {
-        PitchDetector::new(44100.0, 0, 0);
+        MpmPitchDetector::new(44100.0, 0, 0);
     }
 
     #[test]
     #[should_panic]
     fn test_zero_window_distance() {
-        PitchDetector::new(44100.0, 10, 0);
+        MpmPitchDetector::new(44100.0, 10, 0);
     }
 
     #[test]
     #[should_panic]
     fn test_too_large_window_distance() {
-        PitchDetector::new(44100.0, 10, 11);
+        MpmPitchDetector::new(44100.0, 10, 11);
     }
 }

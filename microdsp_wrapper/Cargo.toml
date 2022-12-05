@@ -11,4 +11,4 @@ microdsp = { path = "./.."}
 lazy_static = "1.4.0"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "staticlib"]
