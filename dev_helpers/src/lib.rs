@@ -1,4 +1,5 @@
 mod audio;
+pub mod wav;
 
 pub use portaudio;
 pub use rtrb;
