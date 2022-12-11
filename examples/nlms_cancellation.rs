@@ -1,13 +1,11 @@
 use dev_helpers::wav;
 use microdsp::nlms::NlmsFilter;
 
-const FILTER_ORDER: usize = 30;
-const MU: f32 = 0.02;
-const EPS: f32 = 0.001;
-
 fn main() {
-    // sample rate
-    let fs = 22050;
+    const FILTER_ORDER: usize = 10;
+    const MU: f32 = 0.02;
+    const EPS: f32 = 0.1;
+    const SAMPLE_RATE: u32 = 22050;
 
     // Using notation from https://en.wikipedia.org/wiki/Least_mean_squares_filter
 
@@ -34,7 +32,7 @@ fn main() {
     println!("d(n) <- v(n) + y(n)");
     println!("");
 
-    println!("Filtering...");
+    println!("Filtering (μ={MU}, ε={EPS}, order={FILTER_ORDER})");
     println!("");
 
     // e, the signal formed by subtracting an estimate of y from d
@@ -44,12 +42,12 @@ fn main() {
         e.push(filter.update(*x, *d));
     }
 
-    let e_output_path = "example_data/nlms_example_e.wav";
-    let x_output_path = "example_data/nlms_example_x.wav";
-    let d_output_path = "example_data/nlms_example_d.wav";
-    let _ = wav::write_wav(x_output_path.into(), fs as u32, 1, &x);
-    let _ = wav::write_wav(d_output_path.into(), fs as u32, 1, &d);
-    let _ = wav::write_wav(e_output_path.into(), fs as u32, 1, &e);
+    let e_output_path = "example_data/nlms_example_cancellation_e.wav";
+    let x_output_path = "example_data/nlms_example_cancellation_x.wav";
+    let d_output_path = "example_data/nlms_example_cancellation_d.wav";
+    let _ = wav::write_wav(x_output_path.into(), SAMPLE_RATE as u32, 1, &x);
+    let _ = wav::write_wav(d_output_path.into(), SAMPLE_RATE as u32, 1, &d);
+    let _ = wav::write_wav(e_output_path.into(), SAMPLE_RATE as u32, 1, &e);
 
     println!("Wrote output signals");
     println!("x(n) -> {}", x_output_path);

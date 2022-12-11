@@ -10,7 +10,7 @@ pub struct NlmsFilter<const O: usize> {
 
 impl<const O: usize> NlmsFilter<O> {
   pub fn new() -> Self {
-      NlmsFilter::from_options(0.01, 1e-3)
+      NlmsFilter::from_options(0.02, 1e-3)
   }
 
   pub fn from_options(mu: f32, eps: f32) -> Self {
@@ -21,6 +21,10 @@ impl<const O: usize> NlmsFilter<O> {
           eps,
           buffer_pos: 0,
       }
+  }
+
+  pub fn h(&mut self) -> &[f32] {
+    &self.h
   }
 
   pub fn update(&mut self, x: f32, d: f32) -> f32 {
@@ -49,10 +53,10 @@ impl<const O: usize> NlmsFilter<O> {
       }
 
       let e = d - y;
-
+      let delta_scale = self.mu * e / (power + self.eps);
       for (i, h) in self.h.iter_mut().enumerate() {
           let x_idx = prev_idx(i, self.buffer_pos);
-          let delta = self.mu * e * self.x[x_idx] / (power + self.eps);
+          let delta = delta_scale * self.x[x_idx];
           *h += delta;
       }
 
