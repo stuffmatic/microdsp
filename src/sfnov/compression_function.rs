@@ -1,5 +1,3 @@
-use micromath::F32Ext;
-
 pub trait CompressionFunction {
     fn compress(&self, input: f32) -> f32;
 }

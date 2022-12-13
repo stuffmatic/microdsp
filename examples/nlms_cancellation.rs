@@ -33,7 +33,7 @@ fn main() {
 
     // e, the signal formed by subtracting an estimate of y from d
     let mut e = vec![];
-    let mut filter = NlmsFilter::<FILTER_ORDER>::from_options(MU, EPS);
+    let mut filter = NlmsFilter::from_options(FILTER_ORDER, MU, EPS);
     for (x, d) in x.iter().zip(d.iter()) {
         e.push(filter.update(*x, *d));
     }

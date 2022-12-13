@@ -25,7 +25,7 @@ impl F32ArrayExt for [f32] {
 
         let mut max: f32 = 0.0;
         for sample in self.iter() {
-            let value = sample.abs();
+            let value = F32Ext::abs(*sample);
             if value > max {
                 max = value
             }

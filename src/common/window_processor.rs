@@ -141,6 +141,7 @@ mod tests {
         let input_buffer: Vec<f32> = (0..(5 * window_size)).map(|v| v as f32).collect();
         assert_eq!(input_buffer.len(), 5 * window_size);
 
+        // Test various combinations of downsampling, hop size and chunk size.
         for downsampling in 1..10 {
             for hop_size in 1..=window_size {
                 for chunk_size in 1..5 * window_size {

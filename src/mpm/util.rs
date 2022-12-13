@@ -1,5 +1,3 @@
-use micromath::F32Ext;
-
 pub(crate) fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
     if lag_count > window_size {
         panic!("Lag count must not be greater than the window size");

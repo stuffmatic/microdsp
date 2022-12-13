@@ -1,3 +1,5 @@
+use micromath::F32Ext;
+
 use crate::alloc::boxed::Box;
 use crate::alloc::vec;
 use crate::common::autocorr::{autocorr_fft, autocorr_fft_size};
@@ -117,7 +119,7 @@ impl MpmPitchResult {
                 // Does the closest max meet the period tolerance, i.e was the key max closest
                 // to the double period found at a lag sufficiently close to the double period?
                 let delta_lag = next_max.lag - max.lag;
-                let rel_lag_error = (delta_lag - max.lag).abs() / max.lag;
+                let rel_lag_error = F32Ext::abs(delta_lag - max.lag) / max.lag;
                 let meets_period_tolerance = rel_lag_error < period_tolerance;
 
                 // Does the closest max meet the clarity tolerance, i.e does the key max closest
@@ -295,7 +297,7 @@ impl MpmPitchResult {
         // Compute the NSDF as 2 * r' / m'
         for i in 0..nsdf.len() {
             let denominator = nsdf[i];
-            nsdf[i] = if denominator.abs() <= f32::EPSILON {
+            nsdf[i] = if F32Ext::abs(denominator) <= f32::EPSILON {
                 0.0
             } else {
                 2.0 * r_prime[i] / denominator
