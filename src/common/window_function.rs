@@ -36,11 +36,7 @@ fn hann_window(buffer: &mut [f32]) {
     // Evaluate window in two halves
     let len = buffer.len();
     let len_is_even = len % 2 == 0;
-    let left_half_end_len = if len_is_even {
-        len / 2
-    } else {
-        len / 2 + 1
-    };
+    let left_half_end_len = if len_is_even { len / 2 } else { len / 2 + 1 };
     let dx = 4. / ((len - 1) as f32);
     let mut x = -1.0;
     for value in buffer.iter_mut().take(left_half_end_len) {
@@ -63,7 +59,6 @@ fn hann_window(buffer: &mut [f32]) {
         *value *= window_value;
         x -= dx;
     }
-
 }
 
 /// Performs point-wise multiplication of a buffer and the Welch window function.
@@ -80,7 +75,7 @@ fn welch_window(buffer: &mut [f32]) {
 
 #[cfg(test)]
 mod tests {
-    use crate::common::window_function::{welch_window, hann_window};
+    use crate::common::window_function::{hann_window, welch_window};
 
     #[test]
     fn test_hann_window() {

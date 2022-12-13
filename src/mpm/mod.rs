@@ -8,7 +8,7 @@
 //! Handles collecting input samples into possibly
 //! overlapping windows and processing each newly filled window.
 //! ```
-//! use microdsp::mpm::Detector;
+//! use microdsp::mpm::MpmPitchDetector;
 //!
 //! // Create an input buffer containing a pure tone at 440 Hz.
 //! let sample_rate = 44100.0;
@@ -22,7 +22,7 @@
 //! // Create a pitch detector instance
 //! let window_size = 512; // The number of samples to perform pitch detection on.
 //! let window_distance = 128; // Pitch is computed every window_distance samples
-//! let mut detector = Detector::new(sample_rate, window_size, window_distance);
+//! let mut detector = MpmPitchDetector::new(sample_rate, window_size, window_distance);
 //!
 //! // Perform pitch detection. The detector extracts and processes windows and
 //! // invokes the provided callback when a new window has been analyzed.
@@ -40,14 +40,14 @@
 //! ## Single window
 //! Used to process a window directly.
 //! ```
-//! use microdsp::mpm::Result;
+//! use microdsp::mpm::MpmPitchResult;
 //!
 //! // Create a Result instance
 //! let sample_rate = 44100.0;
 //! let sine_frequency = 440.0;
 //! let window_size = 512;
 //! let lag_count = 256;
-//! let mut result = Result::new(window_size, lag_count);
+//! let mut result = MpmPitchResult::new(window_size, lag_count);
 //!
 //! // Fill the window to process with a pure tone at 440 Hz.
 //! for i in 0..window_size {
@@ -80,11 +80,11 @@
 //! method, which is the recommended way to determine if the input signal has a
 //! strong fundamental frequency.
 
-mod mpm_pitch_detector;
 mod key_max;
+mod mpm_pitch_detector;
 mod result;
 mod util;
 
-pub use mpm_pitch_detector::MpmPitchDetector;
 pub use key_max::KeyMax;
+pub use mpm_pitch_detector::MpmPitchDetector;
 pub use result::MpmPitchResult;

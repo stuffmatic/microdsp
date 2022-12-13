@@ -13,10 +13,13 @@ fn main() {
     #[derive(Clone, Copy)]
     struct HistogramEntry {
         count: usize,
-        max_value: f32
+        max_value: f32,
     }
 
-    let mut delay_estimate_histogram = [HistogramEntry { count: 0, max_value: 0. }; FILTER_ORDER];
+    let mut delay_estimate_histogram = [HistogramEntry {
+        count: 0,
+        max_value: 0.,
+    }; FILTER_ORDER];
 
     let signal_1_path = "example_data/voice_2.wav";
     let signal_2_path = "example_data/voice_2_reverb.wav";
@@ -40,7 +43,10 @@ fn main() {
     assert_eq!(delayed_signal_2.len(), signal_2.len());
     println!("Created input signals");
     println!("x(n) <- {}", signal_1_path);
-    println!("d(n) <- {} delayed by {} samples", signal_2_path, SAMPLE_DELAY);
+    println!(
+        "d(n) <- {} delayed by {} samples",
+        signal_2_path, SAMPLE_DELAY
+    );
     println!("");
 
     println!("Filtering (μ={MU}, ε={EPS}, order={FILTER_ORDER})");
@@ -72,7 +78,12 @@ fn main() {
     println!("-------------------------------------------------");
 
     for (delay, entry) in delay_estimate_histogram.iter().enumerate() {
-        print!("{}                  {:#6.3} %        {:.5}", delay, 100. * (entry.count as f32) / (signal_1.len() as f32), entry.max_value);
+        print!(
+            "{}                  {:#6.3} %        {:.5}",
+            delay,
+            100. * (entry.count as f32) / (signal_1.len() as f32),
+            entry.max_value
+        );
         if delay == SAMPLE_DELAY {
             print!("  <- Actual delay\n");
         } else {
@@ -81,6 +92,4 @@ fn main() {
     }
 
     // let _ = wav::write_wav("test_signal.wav".into(), SAMPLE_RATE, 1, &signal);
-
-
 }

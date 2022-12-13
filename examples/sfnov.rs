@@ -1,13 +1,14 @@
 use dev_helpers::rtrb;
 use dev_helpers::{AudioHost, AudioProcessor};
 use microdsp::sfnov::{
-    compression_function::HardKneeCompression, spectral_flux_novelty_detector::SpectralFluxNoveltyDetector,
+    compression_function::HardKneeCompression,
+    spectral_flux_novelty_detector::SpectralFluxNoveltyDetector,
 };
 use std::thread;
 use std::time::Duration;
 
 enum DetectorMessage {
-    NoveltyValue(f32)
+    NoveltyValue(f32),
 }
 
 const WINDOW_SIZE: usize = 1024;
@@ -51,14 +52,14 @@ impl PeakDetector {
     fn new(threshold: f32) -> Self {
         PeakDetector {
             threshold,
-            is_armed: true
+            is_armed: true,
         }
     }
 
     fn process(&mut self, input: f32) -> bool {
         if input > self.threshold && self.is_armed {
             self.is_armed = false;
-            return true
+            return true;
         } else if input < self.threshold {
             self.is_armed = true;
         };
@@ -68,10 +69,7 @@ impl PeakDetector {
 
 fn main() {
     let sample_rate = 44100.0;
-    let mut audio_host = AudioHost::new(
-        sample_rate,
-        NoveltyDetectorProcessor::new()
-    );
+    let mut audio_host = AudioHost::new(sample_rate, NoveltyDetectorProcessor::new());
     println!("Listening for sounds...");
 
     let poll_interval_ms = 30;

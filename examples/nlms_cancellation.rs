@@ -20,11 +20,7 @@ fn main() {
     // v, the interference, i.e a signal added to y to form d
     let (_, v) = wav::read_wav(v_input_path.into()).unwrap();
     // d, the signal to remove y from, the sum of v and y
-    let d: Vec<f32> = v
-        .iter()
-        .zip(y.iter())
-        .map(|(v, y)| *v + *y)
-        .collect();
+    let d: Vec<f32> = v.iter().zip(y.iter()).map(|(v, y)| *v + *y).collect();
     println!("Created input signals");
     println!("x(n) <- {}", x_input_path);
     println!("y(n) <- {}", y_input_path);
@@ -53,5 +49,4 @@ fn main() {
     println!("x(n) -> {}", x_output_path);
     println!("d(n) -> {}", d_output_path);
     println!("e(n) -> {}", e_output_path);
-
 }

@@ -42,8 +42,7 @@ impl MpmPitchResult {
         // Allocate buffers
         let window = (vec![0.0; window_size]).into_boxed_slice();
         let nsdf = (vec![0.0; lag_count]).into_boxed_slice();
-        let r_prime =
-            (vec![0.0; autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
+        let r_prime = (vec![0.0; autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
         let scratch_buffer =
             (vec![0.0; autocorr_fft_size(window_size, lag_count)]).into_boxed_slice();
 

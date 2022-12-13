@@ -125,42 +125,4 @@ mod tests {
             assert!((frequency - result.frequency).abs() <= 0.05);
         });
     }
-
-    #[test]
-    #[should_panic]
-    fn test_zero_downsampling_factor() {
-        let _ = MpmPitchDetector::from_options(44100., 512, 256, 256, 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_nondivisible_downsampling_factor_1() {
-        // Make sure we panic if the window size is not evenly divisible by the downsampling factor
-        let _ = MpmPitchDetector::from_options(44100., 521, 256, 256, 4);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_nondivisible_downsampling_factor_2() {
-        // Make sure we panic if the window distance is not evenly divisible by the downsampling factor
-        let _ = MpmPitchDetector::from_options(44100., 512, 250, 256, 4);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_zero_window_size() {
-        MpmPitchDetector::new(44100.0, 0, 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_zero_window_distance() {
-        MpmPitchDetector::new(44100.0, 10, 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_too_large_window_distance() {
-        MpmPitchDetector::new(44100.0, 10, 11);
-    }
 }

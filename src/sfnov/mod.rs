@@ -8,5 +8,5 @@
 //! overlapping windows and processing each newly filled window.
 //!
 pub mod compression_function;
-pub mod spectral_flux_novelty_detector;
 pub mod spectral_flux;
+pub mod spectral_flux_novelty_detector;

@@ -19,6 +19,10 @@ pub trait F32ArrayExt {
 
 impl F32ArrayExt for [f32] {
     fn peak_level(&self) -> f32 {
+        if self.len() == 0 {
+            return 0.0;
+        };
+
         let mut max: f32 = 0.0;
         for sample in self.iter() {
             let value = sample.abs();
@@ -34,6 +38,9 @@ impl F32ArrayExt for [f32] {
     }
 
     fn rms_level(&self) -> f32 {
+        if self.len() == 0 {
+            return 0.0;
+        };
         let mut rms: f32 = 0.;
         for sample in self.iter() {
             rms += sample * sample
@@ -53,7 +60,7 @@ mod tests {
     #[test]
     fn test_empty_window() {
         let window: [f32; 0] = [];
-        let w = &window;
-        assert!(window.rms_level() == 0.0)
+        assert!(window.rms_level() == 0.0);
+        assert!(window.peak_level() == 0.0);
     }
 }
