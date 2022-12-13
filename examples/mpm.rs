@@ -52,7 +52,7 @@ fn main() {
     let processor = MPMAudioProcessor::new(sample_rate);
     // Create an audio engine that provides the audio processor with real time input samples
     let mut audio_host = AudioHost::new(sample_rate, processor);
-    println!("Started audio engine, listening for input. Whistle!");
+    println!("Listening for tones. Whistle!");
 
     let poll_interval_ms = 30;
 

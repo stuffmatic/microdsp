@@ -1,17 +1,12 @@
 //! An implementation of the MPM [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection algorithm,
-//! described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf)
-//! by Philip McLeod and Geoff Wyvill. The algorithm is used for detecting pitch in monophonic, primarily musical, sounds. It
+//! described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf).
+//! The algorithm is used for detecting pitch in monophonic, primarily musical, sounds. It
 //! cannot be used to detect multiple pitches at once, like in a musical chord.
 //!
-//! The implementation is reasonably performant and suitable for real time use:
-//! * No memory is allocated apart from a modest amount on initialization.
-//! * Autocorrelation is computed using real-only FFT.
-//! * Computation of the NSDF is accelerated using the incremental scheme described in the paper.
-//! * Downsampling is supported, increasing performance at the expense of frequency resolution.
-//!
 //! # Examples
-//! ## Streaming API
-//! Handles collecting input samples into possibly overlapping windows and processing each newly filled window.
+//! ## Streaming input
+//! Handles collecting input samples into possibly
+//! overlapping windows and processing each newly filled window.
 //! ```
 //! use microdsp::mpm::Detector;
 //!
@@ -42,8 +37,8 @@
 //!     }
 //! });
 //! ```
-//! ## Single window API
-//! Used to process a window directly. Useful if you want to roll your own window handling.
+//! ## Single window
+//! Used to process a window directly.
 //! ```
 //! use microdsp::mpm::Result;
 //!

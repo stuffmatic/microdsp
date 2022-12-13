@@ -1,9 +1,9 @@
 use crate::alloc::boxed::Box;
 use crate::alloc::vec;
 use crate::common::autocorr::{autocorr_fft, autocorr_fft_size};
+use crate::common::midi::freq_to_midi_note;
 use crate::mpm::key_max::KeyMax;
 use crate::mpm::util;
-use micromath::F32Ext;
 
 /// The maximum number of key maxima to gather during the peak finding phase.
 pub const MAX_KEY_MAXIMA_COUNT: usize = 64;
@@ -84,7 +84,7 @@ impl MpmPitchResult {
 
     /// Returns the number of the lowest detectable MIDI note at a give sample rate.
     pub fn min_detectable_note_number(&self, sample_rate: f32) -> f32 {
-        util::freq_to_midi_note(self.min_detectable_frequency(sample_rate))
+        freq_to_midi_note(self.min_detectable_frequency(sample_rate))
     }
 
     /// Returns true if the input window has a discernable fundamental frequency. False otherwise.
@@ -271,7 +271,7 @@ impl MpmPitchResult {
 
             let pitch_period = self.pitch_period / sample_rate;
             self.frequency = 1.0 / pitch_period;
-            self.midi_note_number = util::freq_to_midi_note(self.frequency);
+            self.midi_note_number = freq_to_midi_note(self.frequency);
         }
     }
 

@@ -1,3 +1,5 @@
+//! [Autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation).
+
 use super::fft::real_fft;
 
 /// Computes the length of the FFT needed to compute the autocorrelation

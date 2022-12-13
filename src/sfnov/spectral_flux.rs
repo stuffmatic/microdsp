@@ -1,8 +1,8 @@
 use alloc::{boxed::Box, vec};
 
 use crate::{
-    common::{fft::real_fft, window_function::{WindowFunction, apply_window_function}},
-    snov::compression_function::CompressionFunction,
+    common::{fft::real_fft, window_function::{apply_window_function}},
+    sfnov::compression_function::CompressionFunction,
 };
 
 // https://www.audiolabs-erlangen.de/resources/MIR/FMP/C6/C6S1_NoveltySpectral.html
@@ -84,7 +84,7 @@ impl SpectralFlux {
     pub fn process_window<C: CompressionFunction>(
         &mut self,
         window: &[f32],
-        window_func: WindowFunction,
+        window_func: crate::common::window_function::WindowFunction,
         compression_func: &C,
     ) -> bool {
         let (power, power_prev) = if self.prev_is_1 {
@@ -105,6 +105,8 @@ impl SpectralFlux {
         fft[0].im = 0.;
 
         for (power, z) in power.iter_mut().zip(fft) {
+            // magnitude is compressed in https://www.audiolabs-erlangen.de/resources/MIR/FMP/C6/C6S1_NoveltySpectral.html
+            // TODO: compressing norm s
             *power = compression_func.compress(z.norm_sqr());
         }
 

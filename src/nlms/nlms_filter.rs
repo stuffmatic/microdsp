@@ -1,5 +1,4 @@
-/// An adaptive normalized least mean squares filter.
-/// https://en.wikipedia.org/wiki/Least_mean_squares_filter
+/// An adaptive [normalized least mean squares filter](https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)).
 pub struct NlmsFilter<const O: usize> {
   h: [f32; O],
   x: [f32; O],

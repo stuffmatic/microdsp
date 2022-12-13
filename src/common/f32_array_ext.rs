@@ -1,14 +1,23 @@
+//! `[f32]` extensions.
+
 use micromath::F32Ext;
 
-pub trait Window {
+/// `[f32]` extensions.
+pub trait F32ArrayExt {
+    /// Returns the maximum absolute value.
     fn peak_level(&self) -> f32;
+    /// Returns the maximum absolute value in dB relative to 1,
+    /// i.e 0 dB corresponds to a level of 1.
     fn peak_level_db(&self) -> f32;
+    /// Returns the [root mean square](https://en.wikipedia.org/wiki/Root_mean_square)
+    /// level.
     fn rms_level(&self) -> f32;
+    /// Returns the [root mean square](https://en.wikipedia.org/wiki/Root_mean_square)
+    /// level in dB relative to 1, i.e 0 dB corresponds to a level of 1.
     fn rms_level_db(&self) -> f32;
 }
 
-impl Window for [f32] {
-    /// The maximum absolute value of the input window.
+impl F32ArrayExt for [f32] {
     fn peak_level(&self) -> f32 {
         let mut max: f32 = 0.0;
         for sample in self.iter() {
@@ -20,14 +29,10 @@ impl Window for [f32] {
         max
     }
 
-    /// The maximum absolute value of the input window, in dB relative to 1,
-    /// i.e 0 dB corresponds to a level of 1.
     fn peak_level_db(&self) -> f32 {
         20. * F32Ext::log10(self.peak_level())
     }
 
-    /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
-    /// of the input window.
     fn rms_level(&self) -> f32 {
         let mut rms: f32 = 0.;
         for sample in self.iter() {
@@ -36,8 +41,6 @@ impl Window for [f32] {
         F32Ext::sqrt(rms / (self.len() as f32))
     }
 
-    /// The [root mean square](https://en.wikipedia.org/wiki/Root_mean_square) level
-    /// of the input window, in dB relative to 1, i.e 0 dB corresponds to a level of 1.
     fn rms_level_db(&self) -> f32 {
         20. * F32Ext::log10(self.rms_level())
     }
@@ -45,11 +48,12 @@ impl Window for [f32] {
 
 #[cfg(test)]
 mod tests {
-    use super::Window;
+    use super::F32ArrayExt;
 
     #[test]
     fn test_empty_window() {
         let window: [f32; 0] = [];
+        let w = &window;
         assert!(window.rms_level() == 0.0)
     }
 }

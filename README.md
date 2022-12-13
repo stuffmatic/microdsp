@@ -1,29 +1,24 @@
-# What is this?
+# microdsp
 
-`microdsp` provides
+microdsp is a collection of [DSP](https://en.wikipedia.org/wiki/Digital_signal_processing) algorithms and utilities written in Rust. The code is `no_std` compatible and suitable for resource constrained environments like microcontrollers. 
 
-* embedded, no_std, friendly
-* audio analysis algorithms
-* a framework for building windowed
-
-## Running the examples
-
-`portaudio`
-
-## Windowing
+microdsp relies on [`alloc`](https://doc.rust-lang.org/alloc/). When building for targets without a default allocator, one must be provided by the user. Starting in 1.XXX, this can be accomplished in stable Rust using `#[global_allocator]` and `#[default_alloc_error_handler]`.
 
 ## Algorithms
 
-### mpm
+* Monophonic [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection using the [MPM](papers/A smarter way to find pitch.pdf) (McLeod Pitch Method) algorithm.
+* [Normalized least mean squares](https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)) adaptive filter. Can for example be used for echo cancellation and time delay estimation.
+* [Audio onset detection](https://en.wikipedia.org/wiki/Onset_(audio)) using [spectral flux novelty](https://krishnasubramani.web.illinois.edu/data/Energy-Weighted%20Multi-Band%20Novelty%20Functions%20for%20Onset%20Detection%20in%20Piano%20Music.pdf). Used for detecting the start of musical notes and other sounds.
 
-An implementation of the MPM (McLeod Pitch Method) [pitch](https://en.wikipedia.org/wiki/Pitch_%28music%29) detection algorithm. The algorithm is used for detecting pitch in monophonic, primarily musical, sounds. It cannot be used to detect multiple pitches at once, like in a musical chord. The algorithm is described in the paper [A smarter way to find pitch](http://www.cs.otago.ac.nz/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf) by Philip McLeod and Geoff Wyvill.
+## Examples
 
-### nlms
+`portaudio`
 
-### sflux
+## Demos 
 
-Spectral flux
+* web demo - wasm
+* running on nrf bla bla
+* running on desktop
+ 
 
-### power spectrum
 
-Power

@@ -1,15 +1,13 @@
 use dev_helpers::rtrb;
 use dev_helpers::{AudioHost, AudioProcessor};
-use microdsp::common::window::Window;
-use microdsp::snov::{
+use microdsp::sfnov::{
     compression_function::HardKneeCompression, spectral_flux_novelty_detector::SpectralFluxNoveltyDetector,
 };
 use std::thread;
 use std::time::Duration;
 
 enum DetectorMessage {
-    NoveltyValue(f32),
-    PeakValue(f32),
+    NoveltyValue(f32)
 }
 
 const WINDOW_SIZE: usize = 1024;
@@ -40,7 +38,6 @@ impl AudioProcessor<DetectorMessage> for NoveltyDetectorProcessor {
             let _ = to_main_thread.push(DetectorMessage::NoveltyValue(novelty.novelty()));
         });
 
-        let _ = to_main_thread.push(DetectorMessage::PeakValue(in_buffer.peak_level()));
         true
     }
 }
@@ -75,11 +72,10 @@ fn main() {
         sample_rate,
         NoveltyDetectorProcessor::new()
     );
-    println!("Listening for input...");
+    println!("Listening for sounds...");
 
     let poll_interval_ms = 30;
     let mut novelty_peak_detector = PeakDetector::new(0.4);
-    let mut naive_peak_detector = PeakDetector::new(0.4);
 
     loop {
         thread::sleep(Duration::from_millis(poll_interval_ms));
@@ -89,12 +85,7 @@ fn main() {
                 Ok(message) => match message {
                     DetectorMessage::NoveltyValue(value) => {
                         if novelty_peak_detector.process(value) {
-                            println!("Novelty peak detected {}", value)
-                        }
-                    },
-                    DetectorMessage::PeakValue(value) => {
-                        if naive_peak_detector.process(value) {
-                            println!("Naive peak detected {}", value)
+                            println!("Onset detected (novelty {value})")
                         }
                     }
                 },

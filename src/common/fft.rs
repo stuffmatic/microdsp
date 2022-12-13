@@ -1,6 +1,8 @@
+//! Fast Fourier transform.
+
 use core::convert::TryInto;
 
-/// Real, in-place FFT.
+/// Real, in-place FFT. Input buffer length must be a power of 2.
 pub fn real_fft(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
     let fft_size = buffer.len();
     match fft_size {

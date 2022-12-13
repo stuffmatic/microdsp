@@ -1,6 +1,6 @@
 use crate::common::window_function::WindowFunction;
 use crate::common::window_processor::WindowProcessor;
-use crate::snov::{
+use crate::sfnov::{
     compression_function::{CompressionFunction, HardKneeCompression},
     spectral_flux::SpectralFlux,
 };

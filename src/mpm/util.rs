@@ -1,19 +1,14 @@
 use micromath::F32Ext;
 
-pub fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
+pub(crate) fn validate_window_size_lag_count(window_size: usize, lag_count: usize) {
     if lag_count > window_size {
         panic!("Lag count must not be greater than the window size");
     }
 }
 
-/// Converts a frequency to a MIDI note number (with a fractional part)
-pub fn freq_to_midi_note(f: f32) -> f32 {
-    12.0 * F32Ext::log2(f) - 36.376316562295926
-}
-
 /// Computes m' defined in eq (6), using the incremental subtraction
 /// algorithm described in section 6 - Efficient calculation of SDF.
-pub fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32]) {
+pub(crate) fn m_prime_incremental(window: &[f32], autocorr_at_lag_0: f32, result: &mut [f32]) {
     let lag_count = result.len();
     let window_size = window.len();
     validate_window_size_lag_count(window_size, lag_count);
@@ -53,26 +48,6 @@ mod tests {
                 sum += xj * xj + xj_plus_tau * xj_plus_tau;
             }
             result[tau] = sum;
-        }
-    }
-
-    #[test]
-    fn text_approximate_note_number() {
-        // The hz to midi note conversion relies on the approximate log2
-        // function of the micromath crate. This test compares this
-        // approximation to std's log2 and makes sure the difference
-        // is acceptable.
-
-        // The maximum acceptable error in cents. 0.1 is 1/1000th of a semitone.
-        let max_cent_error = 0.11_f32;
-        for i in 1..10000 {
-            let f = i as f32;
-            let actual_note_number = 12.0 * (f / 440.0).log2() + 69.0;
-            let approx_note_number = freq_to_midi_note(f);
-            let delta_cents = 100. * (actual_note_number - approx_note_number);
-            if delta_cents.abs() > max_cent_error {
-                assert!(false);
-            }
         }
     }
 

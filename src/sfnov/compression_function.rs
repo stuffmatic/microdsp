@@ -1,3 +1,5 @@
+use micromath::F32Ext;
+
 pub trait CompressionFunction {
     fn compress(&self, input: f32) -> f32;
 }
@@ -44,7 +46,7 @@ pub struct HardKneeCompression {
 
 impl HardKneeCompression {
     pub fn new() -> Self {
-        HardKneeCompression::from_options(0.1, 0.7)
+        HardKneeCompression::from_options(0.025, 0.9)
     }
 
     pub fn from_options(x_knee: f32, y_knee: f32) -> Self {
@@ -74,6 +76,7 @@ impl HardKneeCompression {
 
 impl CompressionFunction for HardKneeCompression {
     fn compress(&self, input: f32) -> f32 {
+        assert!(input >= 0.0);
         let (k, l) = if input < self.x_knee {
             (self.k_0, self.m_0)
         } else {
@@ -85,7 +88,7 @@ impl CompressionFunction for HardKneeCompression {
 
 #[cfg(test)]
 mod tests {
-    use crate::snov::compression_function::{CompressionFunction, QuarticCompression};
+    use crate::sfnov::compression_function::{CompressionFunction, QuarticCompression};
 
     #[test]
     fn test_quartic_compression() {

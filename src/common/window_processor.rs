@@ -37,7 +37,7 @@ impl WindowProcessor {
     /// # Arguments
     ///
     /// * `downsampled_window_size` - The window size _after downsampling_.
-    /// * `downsampled_hop_size` - The distance, _after downsampling_, between collected windows. Must not be zero and not be greater than `downsampled_window_size`.
+    /// * `downsampled_hop_size` - The distance, _after downsampling_, between the start of collected windows. Must not be zero and not be greater than `downsampled_window_size`.
     /// * `downsampling` - The downsampling factor (1 corresponds to no downsampling)
     pub fn new(
         downsampled_window_size: usize,
@@ -66,18 +66,18 @@ impl WindowProcessor {
         self.downsampling
     }
 
-    /// Returns the hop size _after_ downsampling.
+    /// Returns the hop size _after downsampling_.
     pub fn downsampled_hop_size(&self) -> usize {
         self.downsampled_hop_size
     }
 
-    /// Returns the window size _after_ downsampling.
+    /// Returns the window size _after downsampling_.
     pub fn downsampled_window_size(&self) -> usize {
         self.downsampled_window.len()
     }
 
     /// Processes an arbitrarily sized buffer of input samples. Invokes
-    /// the provided handler once per newly filled window.
+    /// the provided handler with each newly filled window.
     pub fn process<F>(&mut self, buffer: &[f32], mut handler: F)
     where
         F: FnMut(&[f32]),
@@ -121,7 +121,7 @@ mod tests {
 
         for downsampling in 1..10 {
             for hop_size in 1..=window_size {
-                for chunk_size in 1..2 * window_size {
+                for chunk_size in 1..5 * window_size {
                     let mut processor = WindowProcessor::new(
                         window_size,
                         hop_size,
