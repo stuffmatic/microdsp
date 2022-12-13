@@ -1,20 +1,20 @@
-use alloc::{boxed::Box, vec};
+//! Window processing utility.
 
-///
+use alloc::{vec, vec::Vec};
+
+/// Provides fixed size windows extracted from
+/// a stream of arbitrarily sized input buffers. Supports
+/// downsampling and partially overlapping windows. Useful
+/// for implementing algorithms operating on
+/// consecutive windows of the same size.
 pub struct WindowProcessor {
-    downsampled_window: Box<[f32]>,
-    downsampled_window_size: usize,
+    downsampled_window: Vec<f32>,
     downsampling: usize,
     downsampled_hop_size: usize,
-    // The write index within the current sub window. A sub window
-    // is a chunk of size downsampled_hop_size.
-    sub_window_write_index: usize,
-    // The index of the current sub window mod the number of
-    // sub windows per window
-    wrapped_sub_window_index: usize,
-    first_read_index: usize,
-    has_filled_first_window: bool,
+    // The write index within the downsampled window.
+    write_index: usize,
     sample_counter: usize,
+    should_process: bool
 }
 
 fn validate_sizes(downsampled_size: usize, downsampled_hop_size: usize, downsampling: usize) {
@@ -30,13 +30,15 @@ fn validate_sizes(downsampled_size: usize, downsampled_hop_size: usize, downsamp
     if downsampled_hop_size > downsampled_size {
         panic!("Downsampled hop size must not be greater than downsampled size")
     }
-    if downsampled_size % downsampled_hop_size != 0 {
-        // TODO: not necessary?
-        panic!("Downsampled size must be divisible by downsampled hop size")
-    }
 }
 
 impl WindowProcessor {
+    /// Creates a new `WindowProcessor` instance.
+    /// # Arguments
+    ///
+    /// * `downsampled_window_size` - The window size _after downsampling_.
+    /// * `downsampled_hop_size` - The distance, _after downsampling_, between collected windows. Must not be zero and not be greater than `downsampled_window_size`.
+    /// * `downsampling` - The downsampling factor (1 corresponds to no downsampling)
     pub fn new(
         downsampled_window_size: usize,
         downsampled_hop_size: usize,
@@ -44,103 +46,110 @@ impl WindowProcessor {
     ) -> Self {
         validate_sizes(downsampled_window_size, downsampled_hop_size, downsampling);
         WindowProcessor {
-            downsampled_window: vec![0.; downsampled_window_size].into_boxed_slice(),
-            downsampled_window_size: downsampled_window_size,
+            downsampled_window: vec![0.; downsampled_window_size],
             downsampled_hop_size,
             downsampling,
-            sub_window_write_index: 0,
-            wrapped_sub_window_index: 0,
-            first_read_index: 0,
-            has_filled_first_window: false,
+            write_index: 0,
             sample_counter: 0,
+            should_process: true
         }
     }
 
     pub fn reset(&mut self) {
-        self.sub_window_write_index = 0;
-        self.first_read_index = 0;
-        self.wrapped_sub_window_index = 0;
-        self.has_filled_first_window = false;
+        self.write_index = 0;
+        self.sample_counter = 0;
+        self.should_process = true;
     }
 
+    /// Returns the downsampling factor.
     pub fn downsampling(&self) -> usize {
         self.downsampling
     }
 
+    /// Returns the hop size _after_ downsampling.
     pub fn downsampled_hop_size(&self) -> usize {
         self.downsampled_hop_size
     }
 
+    /// Returns the window size _after_ downsampling.
     pub fn downsampled_window_size(&self) -> usize {
-        self.downsampled_window_size
+        self.downsampled_window.len()
     }
 
+    /// Processes an arbitrarily sized buffer of input samples. Invokes
+    /// the provided handler once per newly filled window.
     pub fn process<F>(&mut self, buffer: &[f32], mut handler: F)
     where
         F: FnMut(&[f32]),
     {
-        let sub_windows_per_window = self.downsampled_window_size / self.downsampled_hop_size;
-        for input in buffer
-            .iter()
-            .skip(self.first_read_index)
-            .step_by(self.downsampling)
-        {
-            self.sample_counter += 1;
-            self.downsampled_window[self.sub_window_write_index] = *input;
-            self.sub_window_write_index += 1;
-            if self.sub_window_write_index == self.downsampled_hop_size {
-                self.wrapped_sub_window_index += 1;
-                if self.wrapped_sub_window_index == sub_windows_per_window {
-                    self.wrapped_sub_window_index = 0;
-                    self.has_filled_first_window = true
-                }
-
-                self.sub_window_write_index = 0;
-
-                self.downsampled_window
-                    .rotate_left(self.downsampled_hop_size);
-                if self.has_filled_first_window {
+        if self.should_process {
+            let downsampled_window_size = self.downsampled_window.len();
+            let skip = self.sample_counter % self.downsampling;
+            for input in buffer
+                .iter()
+                .skip(skip)
+                .step_by(self.downsampling)
+            {
+                self.downsampled_window[self.write_index] = *input;
+                self.write_index += 1;
+                if self.write_index == downsampled_window_size {
                     handler(&self.downsampled_window);
+                    self.downsampled_window.rotate_left(self.downsampled_hop_size);
+                    self.write_index = downsampled_window_size - self.downsampled_hop_size;
                 }
             }
         }
 
-        self.first_read_index = (self.first_read_index + buffer.len()) % self.downsampling
+        self.should_process = self.sample_counter < self.downsampling && self.sample_counter + buffer.len() >= self.downsampling;
+        self.sample_counter += buffer.len()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+
     use super::WindowProcessor;
 
     #[test]
-    fn test_window_processor() {
-        const DOWNSAMPLED_SIZE: usize = 16;
-        const BUFFER_SIZE: usize = 5 * DOWNSAMPLED_SIZE;
-        const DOWNSAMPLED_HOP_SIZE: usize = 4;
-        const DOWNSAMPLING: usize = 2;
-        let mut processor =
-            WindowProcessor::new(DOWNSAMPLED_SIZE, DOWNSAMPLED_HOP_SIZE, DOWNSAMPLING);
-        let mut buffer = [0.; BUFFER_SIZE];
-        for (index, value) in buffer.iter_mut().enumerate() {
-            *value = index as f32;
+    fn test_window_processing() {
+        let window_size = 15;
+
+        // An input buffer with values 0, 1, 2, 3, 4....
+        let input_buffer: Vec<f32> = (0..(5 * window_size)).map(|v| v as f32).collect();
+        assert_eq!(input_buffer.len(), 5 * window_size);
+
+        for downsampling in 1..10 {
+            for hop_size in 1..=window_size {
+                for chunk_size in 1..2 * window_size {
+                    let mut processor = WindowProcessor::new(
+                        window_size,
+                        hop_size,
+                        downsampling
+                    );
+                    let mut processed_window_count = 0;
+                    let mut input_buffer_pos = 0;
+                    // Feed the processor chunks of chunk_size samples
+                    while input_buffer_pos < input_buffer.len() {
+                        let chunk_start_idx = input_buffer_pos;
+                        let current_chunk_size = chunk_size.min(input_buffer.len() - chunk_start_idx);
+                        let chunk_end_idx = input_buffer_pos + current_chunk_size;
+                        let current_chunk_size = chunk_size.min(chunk_end_idx - chunk_start_idx);
+                        let chunk = &input_buffer[chunk_start_idx..chunk_end_idx];
+                        assert_eq!(chunk.len(), current_chunk_size);
+
+                        processor.process(chunk, |window| {
+                            // Verify that the first sample of the extrated window
+                            // corresponds to the correct input_buffer value
+                            assert_eq!(window[0], input_buffer[downsampling * processed_window_count * hop_size]);
+                            assert_eq!(window.len(), window_size);
+                            processed_window_count += 1;
+                        });
+
+                        input_buffer_pos += chunk_size
+                    }
+                }
+            }
         }
-
-        // TODO: actual tests
-        processor.process(&buffer[..1], |window| {
-            /*for value in window {
-                // assert_eq!(*value, processed_index as f32);
-                processed_index += 1
-            }*/
-            let a = 0;
-        });
-
-        processor.process(&buffer[1..], |window| {
-            /*for value in window {
-                // assert_eq!(*value, processed_index as f32);
-                processed_index += 1
-            }*/
-            let a = 0;
-        });
     }
 }
