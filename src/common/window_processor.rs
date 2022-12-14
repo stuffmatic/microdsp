@@ -37,7 +37,7 @@ impl WindowProcessor {
     /// # Arguments
     ///
     /// * `downsampled_window_size` - The window size _after downsampling_.
-    /// * `downsampled_hop_size` - The distance, _after downsampling_, between the start of collected windows. Must not be zero and not be greater than `downsampled_window_size`.
+    /// * `downsampled_hop_size` - The distance, _after downsampling_, between the start of windows. Must not be zero and not be greater than `downsampled_window_size`.
     /// * `downsampling` - The downsampling factor (1 corresponds to no downsampling)
     pub fn new(
         downsampled_window_size: usize,

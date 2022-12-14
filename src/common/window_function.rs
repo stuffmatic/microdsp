@@ -21,7 +21,7 @@ pub fn apply_window_function(window_function: WindowFunction, buffer: &mut [f32]
 /// Performs point-wise multiplication of a buffer and the Hann window function.
 fn hann_window(buffer: &mut [f32]) {
     // sin(0.5 * pi * x) can be approximated with a
-    // max error below 0.001 and exactly matching endpoints on [-1, 1] as
+    // max error below 0.0003 and exactly matching endpoints on [-1, 1] as
     // ax^5 + bx^3 + cx,
     // where
     // a = pi / 2 - 1.5
@@ -33,20 +33,22 @@ fn hann_window(buffer: &mut [f32]) {
     let c = 0.5 * PI / 2.;
     let d = 0.5;
 
-    // Evaluate window in two halves
     let len = buffer.len();
-    let len_is_even = len % 2 == 0;
-    let left_half_end_len = if len_is_even { len / 2 } else { len / 2 + 1 };
     let dx = 4. / ((len - 1) as f32);
+    let len_is_even = len % 2 == 0;
+
+    // Evaluate window in two halves starting with the left
+    let left_half_end_len = if len_is_even { len / 2 } else { len / 2 + 1 };
     let mut x = -1.0;
     for value in buffer.iter_mut().take(left_half_end_len) {
         let x3 = x * x * x;
         let x5 = x3 * x * x;
         let window_value = a * x5 + b * x3 + c * x + d;
         *value *= window_value;
-        x += dx;
+        x += dx; // TODO: this causes drift for large windows?
     }
 
+    // Right half
     x = if len_is_even {
         1.0 - 0.5 * dx
     } else {
@@ -57,64 +59,73 @@ fn hann_window(buffer: &mut [f32]) {
         let x5 = x3 * x * x;
         let window_value = a * x5 + b * x3 + c * x + d;
         *value *= window_value;
-        x -= dx;
+        x -= dx; // TODO: this causes drift for large windows?
     }
 }
 
 /// Performs point-wise multiplication of a buffer and the Welch window function.
 fn welch_window(buffer: &mut [f32]) {
+    if buffer.len() < 2 {
+        for value in buffer.iter_mut() {
+            *value = 0.0;
+        }
+        return
+    }
     let len = buffer.len();
     let dx = 2. / ((len - 1) as f32);
-    let mut x = -1.0;
-    for value in buffer.iter_mut() {
+    for (i, value) in buffer.iter_mut().enumerate() {
+        let x = -1.0 + dx * (i as f32);
         let window_value = 1. - x * x;
         *value *= window_value;
-        x += dx;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::common::window_function::{hann_window, welch_window};
+    use alloc::vec;
+    use core::f32::consts::PI;
 
     #[test]
     fn test_hann_window() {
-        {
-            let mut buffer = [1.0_f32; 11];
-            hann_window(&mut buffer);
-            assert_eq!(buffer[0], 0.);
-            assert_eq!(buffer[5], 1.);
-            assert_eq!(buffer[10], 0.);
-        }
-
-        {
-            let mut buffer = [1.0_f32; 5];
-            hann_window(&mut buffer);
-            assert_eq!(buffer[0], 0.0);
-            assert_eq!(buffer[1], 0.5);
-            assert_eq!(buffer[2], 1.0);
-            assert_eq!(buffer[3], 0.5);
-            assert_eq!(buffer[4], 0.0);
-        }
-
-        {
-            let mut buffer = [1.0_f32; 6];
-            hann_window(&mut buffer);
-            assert_eq!(buffer[0], 0.0);
-            assert_eq!(buffer[1], 0.345475435);
-            assert_eq!(buffer[2], 0.904699444);
-            assert_eq!(buffer[3], 0.904699444);
-            assert_eq!(buffer[4], 0.345475435);
-            assert_eq!(buffer[5], 0.0);
+        let hann_exact = |n: usize, size: usize| -> f32 {
+            if n == 0 {
+                return 0.0;
+            }
+            let sin = (PI * (n as f32) / ((size - 1) as f32)).sin();
+            sin * sin
+        };
+        let eps = 0.0003;
+        for window_size in 1..=1024 {
+            let mut window = vec![1.0; window_size];
+            hann_window(&mut window);
+            for (i, value_approx) in window.iter().enumerate() {
+                let exact_value = hann_exact(i, window.len());
+                let error = (exact_value - value_approx).abs();
+                assert!(error < eps);
+            }
         }
     }
 
     #[test]
     fn test_welch_window() {
-        let mut buffer: [f32; 1025] = [1.; 1025];
-        welch_window(&mut buffer);
-        assert_eq!(buffer[0], 0.);
-        assert_eq!(buffer[512], 1.);
-        assert_eq!(buffer[1024], 0.);
+        let welch_exact = |n: usize, size: usize| -> f32 {
+            if size < 2 {
+                return 0.0;
+            }
+            let x = -1.0 + 2.0 * (n as f32) / ((size - 1) as f32);
+            1.0 - x * x
+        };
+
+        let eps = 1e-6;
+        for window_size in 1..=1024 {
+            let mut window = vec![1.0; window_size];
+            welch_window(&mut window);
+            for (i, value_approx) in window.iter().enumerate() {
+                let exact_value = welch_exact(i, window.len());
+                let error = (exact_value - value_approx).abs();
+                assert!(error < eps);
+            }
+        }
     }
 }
