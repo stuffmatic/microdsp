@@ -88,3 +88,41 @@ impl NlmsFilter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rand::{Rng, rngs::StdRng, SeedableRng};
+
+    use super::*;
+
+    #[test]
+    fn test_nlms_cancellation() {
+        // Use the same noise signal as x(n) and d(n). The expected
+        // result is an identity FIR filter with all zeros except a 1 at index 0.
+        let sample_count = 10000;
+        let mut signal = vec![0.0; sample_count];
+
+        let mut rng = StdRng::seed_from_u64(222); // <- Here we set the seed
+
+        for i in 0..sample_count {
+            signal[i] = (rng.gen_range(-1000..=1000) as f32) * 0.01;
+        }
+
+        let mut filter = NlmsFilter::from_options(10, 0.5, 0.00001);
+
+        for (i, x) in signal.iter().enumerate() {
+            let e = filter.update(*x, *x);
+
+            // Give the filter time to converge
+            if i > 200 {
+                // The signal should be almost completely cancelled out
+                assert!(e.abs() < 0.001);
+                // The FIR should have an identity response.
+                assert!((filter.h()[0] - 1.0).abs() < 1e-5);
+                for h in filter.h().iter().skip(1) {
+                    assert!(h.abs() < 1e-5)
+                }
+            }
+        }
+    }
+}

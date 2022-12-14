@@ -14,6 +14,7 @@ resolver = "2"
 [dev-dependencies]
 criterion = "0.3"
 dev_helpers = { path = "dev_helpers" }
+rand = "0.8.5"
 
 [[bench]]
 name = "main"
