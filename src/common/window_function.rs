@@ -1,20 +1,20 @@
-//! [Window functions](https://en.wikipedia.org/wiki/Window_function).
 
 use core::f32::consts::PI;
 
 #[derive(Clone, Copy)]
-pub enum WindowFunction {
-    /// <https://en.wikipedia.org/wiki/Window_function#Hann_and_Hamming_windows>
+/// [Window function](https://en.wikipedia.org/wiki/Window_function) type.
+pub enum WindowFunctionType {
+    /// [Hann window](https://en.wikipedia.org/wiki/Window_function#Hann_and_Hamming_windows)
     Hann,
-    /// <https://en.wikipedia.org/wiki/Window_function#Welch_window>
+    /// [Welch window](<https://en.wikipedia.org/wiki/Window_function#Welch_window>)
     Welch,
 }
 
 /// Performs point-wise multiplication of a buffer and a window function of a given type.
-pub fn apply_window_function(window_function: WindowFunction, buffer: &mut [f32]) {
+pub fn apply_window_function(window_function: WindowFunctionType, buffer: &mut [f32]) {
     match window_function {
-        WindowFunction::Hann => hann_window(buffer),
-        WindowFunction::Welch => welch_window(buffer),
+        WindowFunctionType::Hann => hann_window(buffer),
+        WindowFunctionType::Welch => welch_window(buffer),
     }
 }
 
@@ -96,7 +96,7 @@ mod tests {
             sin * sin
         };
         let eps = 0.0003;
-        for window_size in 1..=1024 {
+        for window_size in [1, 2, 128, 4096, 100000] {
             let mut window = vec![1.0; window_size];
             hann_window(&mut window);
             for (i, value_approx) in window.iter().enumerate() {
@@ -118,7 +118,7 @@ mod tests {
         };
 
         let eps = 1e-6;
-        for window_size in 1..=1024 {
+        for window_size in [1, 2, 128, 4096, 100000] {
             let mut window = vec![1.0; window_size];
             welch_window(&mut window);
             for (i, value_approx) in window.iter().enumerate() {

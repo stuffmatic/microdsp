@@ -1,5 +1,5 @@
-use crate::common::window_function::WindowFunction;
-use crate::common::window_processor::WindowProcessor;
+use crate::common::WindowFunctionType;
+use crate::common::WindowProcessor;
 use crate::sfnov::{
     compression_function::{CompressionFunction, HardKneeCompression},
     spectral_flux::SpectralFlux,
@@ -8,15 +8,15 @@ use crate::sfnov::{
 pub struct SpectralFluxNoveltyDetector<C: CompressionFunction> {
     window_processor: WindowProcessor,
     flux: SpectralFlux,
-    window_func: WindowFunction,
+    window_func: WindowFunctionType,
     compression_func: C,
 }
 
 impl SpectralFluxNoveltyDetector<HardKneeCompression> {
     pub fn new(window_size: usize) -> Self {
         SpectralFluxNoveltyDetector {
-            window_processor: WindowProcessor::new(window_size, window_size / 2, 1),
-            window_func: WindowFunction::Hann,
+            window_processor: WindowProcessor::new(1, window_size, window_size / 2),
+            window_func: WindowFunctionType::Hann,
             compression_func: HardKneeCompression::new(),
             flux: SpectralFlux::new(window_size),
         }
@@ -25,7 +25,7 @@ impl SpectralFluxNoveltyDetector<HardKneeCompression> {
 
 impl<C: CompressionFunction> SpectralFluxNoveltyDetector<C> {
     pub fn from_options(
-        window_func: WindowFunction,
+        window_func: WindowFunctionType,
         compression_func: C,
         downsampled_window_size: usize,
         downsampling: usize,

@@ -1,5 +1,3 @@
-//! Window processing utility.
-
 use alloc::{vec, vec::Vec};
 
 /// Provides fixed size windows extracted from
@@ -36,13 +34,13 @@ impl WindowProcessor {
     /// Creates a new `WindowProcessor` instance.
     /// # Arguments
     ///
+    /// * `downsampling` - The downsampling factor (1 corresponds to no downsampling)
     /// * `downsampled_window_size` - The window size _after downsampling_.
     /// * `downsampled_hop_size` - The distance, _after downsampling_, between the start of windows. Must not be zero and not be greater than `downsampled_window_size`.
-    /// * `downsampling` - The downsampling factor (1 corresponds to no downsampling)
     pub fn new(
+        downsampling: usize,
         downsampled_window_size: usize,
         downsampled_hop_size: usize,
-        downsampling: usize,
     ) -> Self {
         validate_sizes(downsampled_window_size, downsampled_hop_size, downsampling);
         WindowProcessor {
@@ -112,25 +110,25 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_zero_window_size() {
-        WindowProcessor::new(0, 256, 1);
+        WindowProcessor::new(1, 0, 256);
     }
 
     #[test]
     #[should_panic]
     fn test_zero_hop_size() {
-        WindowProcessor::new(256, 0, 1);
+        WindowProcessor::new(1, 256, 0);
     }
 
     #[test]
     #[should_panic]
     fn test_too_large_hop_size() {
-        WindowProcessor::new(256, 257, 1);
+        WindowProcessor::new(1, 256, 257);
     }
 
     #[test]
     #[should_panic]
     fn test_zero_downsampling() {
-        WindowProcessor::new(256, 256, 0);
+        WindowProcessor::new(0, 256, 256);
     }
 
     #[test]
@@ -145,7 +143,7 @@ mod tests {
         for downsampling in 1..10 {
             for hop_size in 1..=window_size {
                 for chunk_size in 1..5 * window_size {
-                    let mut processor = WindowProcessor::new(window_size, hop_size, downsampling);
+                    let mut processor = WindowProcessor::new(downsampling, window_size, hop_size);
                     let mut processed_window_count = 0;
                     let mut input_buffer_pos = 0;
                     // Feed the processor chunks of chunk_size samples

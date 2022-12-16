@@ -1,8 +1,6 @@
-//! [MIDI](https://en.wikipedia.org/wiki/MIDI) related helper functions.
-
 use micromath::F32Ext;
 
-/// Converts a frequency in Hz to a MIDI note number (with a fractional part).
+/// Converts a frequency in Hz to a [MIDI](https://en.wikipedia.org/wiki/MIDI) note number (with a fractional part).
 pub fn freq_to_midi_note(freq: f32) -> f32 {
     12.0 * F32Ext::log2(freq) - 36.376316562295926
 }

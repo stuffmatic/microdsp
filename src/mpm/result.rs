@@ -2,8 +2,8 @@ use micromath::F32Ext;
 
 use crate::alloc::boxed::Box;
 use crate::alloc::vec;
-use crate::common::autocorr::{autocorr_fft, autocorr_fft_size};
-use crate::common::midi::freq_to_midi_note;
+use crate::common::{autocorr_fft, autocorr_fft_size};
+use crate::common::freq_to_midi_note;
 use crate::mpm::key_max::KeyMax;
 use crate::mpm::util;
 

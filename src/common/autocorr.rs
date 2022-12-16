@@ -1,13 +1,15 @@
-//! [Autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation).
-
 use super::fft::real_fft;
 
 /// Computes the length of the FFT needed to compute the autocorrelation
 /// for a given window size and lag count to avoid circular convolution effects.
-pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
-    assert!(lag_count <= window_size);
-
-    let min_length = window_size + lag_count - 1;
+///
+/// # Arguments
+///
+/// * `buffer_size` - The size of the input buffer.
+/// * `lag_count` - The length of the computed autocorrelation.
+pub fn autocorr_fft_size(buffer_size: usize, lag_count: usize) -> usize {
+    assert!(lag_count <= buffer_size);
+    let min_length = buffer_size + lag_count - 1;
     let mut result: usize = 8; // Start at microfft's minimum size
     while result < min_length {
         result = result << 1;
@@ -15,14 +17,24 @@ pub fn autocorr_fft_size(window_size: usize, lag_count: usize) -> usize {
     result
 }
 
+
+/// Computes the [autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation)
+/// of a given buffer using FFT.
+///
+/// # Arguments
+///
+/// * `buffer` - Input buffer
+/// * `result` - A buffer of length TODO to write the result to.
+/// * `scratch_buffer` - A scratch buffer of length TODO used for temporary storage.
+/// * `lag_count` - The length of the computed autocorrelation. Must not be greater than the length of TODO.
 pub fn autocorr_fft(
-    window: &[f32],
+    buffer: &[f32],
     result: &mut [f32],
     scratch_buffer: &mut [f32],
     lag_count: usize,
 ) {
     // Sanity checks
-    let fft_size = autocorr_fft_size(window.len(), lag_count);
+    let fft_size = autocorr_fft_size(buffer.len(), lag_count);
     if result.len() != fft_size {
         panic!(
             "Got autocorr fft buffer of length {}, expected {}.",
@@ -35,8 +47,8 @@ pub fn autocorr_fft(
     }
 
     // Build FFT input signal
-    result[..window.len()].copy_from_slice(&window[..]);
-    for element in result.iter_mut().skip(window.len()) {
+    result[..buffer.len()].copy_from_slice(&buffer[..]);
+    for element in result.iter_mut().skip(buffer.len()) {
         *element = 0.0
     }
 
@@ -64,9 +76,10 @@ pub fn autocorr_fft(
     }
 }
 
-/// Computes the autocorrelation as a naive inefficient summation.
+/// Computes the [autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation)
+/// of a given buffer using time domain convolution.
 /// Only used for testing purposes.
-pub fn autocorr_sum(window: &[f32], result: &mut [f32]) {
+pub fn autocorr_conv(window: &[f32], result: &mut [f32]) {
     let window_size = window.len();
     if window_size < result.len() {
         panic!("Result vector must not be longer than the window.");
@@ -92,7 +105,7 @@ mod tests {
     use alloc::vec;
     use alloc::vec::Vec;
 
-    use super::{autocorr_fft, autocorr_fft_size, autocorr_sum};
+    use super::{autocorr_fft, autocorr_fft_size, autocorr_conv};
 
     #[test]
     fn test_autocorr_fft() {
@@ -104,7 +117,7 @@ mod tests {
         let window: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
         let lag_count = 4;
         let mut autocorr_reference: Vec<f32> = vec![0.0; lag_count];
-        autocorr_sum(&window[..], &mut autocorr_reference[..]);
+        autocorr_conv(&window[..], &mut autocorr_reference[..]);
 
         let fft_size = autocorr_fft_size(window.len(), lag_count);
         let mut fft_buffer: Vec<f32> = vec![0.0; fft_size];

@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec};
 
 use crate::{
-    common::{fft::real_fft, window_function::apply_window_function},
+    common::{real_fft, apply_window_function},
     sfnov::compression_function::CompressionFunction,
 };
 
@@ -84,7 +84,7 @@ impl SpectralFlux {
     pub fn process_window<C: CompressionFunction>(
         &mut self,
         window: &[f32],
-        window_func: crate::common::window_function::WindowFunction,
+        window_func: crate::common::WindowFunctionType,
         compression_func: &C,
     ) -> bool {
         let (power, power_prev) = if self.prev_is_1 {

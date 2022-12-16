@@ -24,7 +24,7 @@ mod tests {
     use super::*;
     use crate::alloc::vec;
     use crate::alloc::vec::Vec;
-    use crate::common::autocorr::autocorr_sum;
+    use crate::common::autocorr_conv;
 
     // Computes m', defined in eq (6), as a naive inefficient summation.
     // Only used for testing purposes.
@@ -62,7 +62,7 @@ mod tests {
 
         // Compute m' by incremental subtraction
         let mut autocorr: Vec<f32> = vec![0.0; lag_count];
-        autocorr_sum(&signal[..], &mut autocorr[..]);
+        autocorr_conv(&signal[..], &mut autocorr[..]);
         let mut m_prime_incr: Vec<f32> = vec![0.0; lag_count];
         m_prime_incremental(&signal[..], autocorr[0], &mut m_prime_incr[..]);
 

@@ -1,4 +1,4 @@
-use crate::common::window_processor::WindowProcessor;
+use crate::common::WindowProcessor;
 use crate::mpm::result::MpmPitchResult;
 
 pub struct MpmPitchDetector {
@@ -25,9 +25,9 @@ impl MpmPitchDetector {
             sample_rate,
             result: MpmPitchResult::new(downsampled_window_size, downsampled_lag_count),
             window_processor: WindowProcessor::new(
+                downsampling,
                 downsampled_window_size,
                 downsampled_hop_size,
-                downsampling,
             ),
         }
     }
@@ -86,12 +86,12 @@ mod tests {
     #[test]
     fn test_sine_detection() {
         let window_size = 1024;
-        let window_distance = 512;
+        let hop_size = 512;
         let frequency: f32 = 467.0;
         let sample_rate: f32 = 44100.0;
         let window = generate_sine(sample_rate, frequency, window_size);
 
-        let mut detector = MpmPitchDetector::new(sample_rate, window_size, window_distance);
+        let mut detector = MpmPitchDetector::new(sample_rate, window_size, hop_size);
 
         detector.process(&window[..], |result: &MpmPitchResult| {
             assert!((frequency - result.frequency).abs() <= 0.001);
@@ -102,7 +102,7 @@ mod tests {
     fn test_downsampled_sine_detection() {
         let window_size = 2048;
         let lag_count = window_size / 2;
-        let window_distance = window_size;
+        let hop_size = window_size;
         let frequency: f32 = 467.0;
         let sample_rate: f32 = 44100.0;
         let window = generate_sine(sample_rate, frequency, window_size);
@@ -110,7 +110,7 @@ mod tests {
         let mut detector = MpmPitchDetector::from_options(
             sample_rate,
             window_size,
-            window_distance,
+            hop_size,
             lag_count,
             downsampling_factor,
         );

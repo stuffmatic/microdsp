@@ -24,7 +24,9 @@ impl NlmsFilter {
     pub fn from_options(order: usize, mu: f32, eps: f32) -> Self {
         NlmsFilter {
             h: vec![0.0; order],
-            x: vec![0.0; order],
+            // Trade memory usage for update speed:
+            // double size for x to avoid index wrapping in the update method.
+            x: vec![0.0; 2 * order],
             μ: mu,
             ε: eps,
             buffer_pos: 0,
@@ -41,6 +43,40 @@ impl NlmsFilter {
     }
 
     pub fn update(&mut self, x: f32, d: f32) -> f32 {
+        assert!(self.buffer_pos < self.order());
+        let order = self.order();
+        self.x[self.buffer_pos] = x;
+        self.x[self.buffer_pos + order] = x;
+
+        // Add current input to signal power
+        self.x_power += x * x;
+
+        // Compute filter output y = h applied to x.
+        let mut y = 0.0;
+        for (h, x) in self.h.iter().zip(self.x.iter().skip(self.buffer_pos)) {
+            y += h * *x
+        }
+
+        let e = d - y;
+        let delta_scale = self.μ * e / (self.x_power + self.ε);
+        for (h, x) in self.h.iter_mut().zip(self.x.iter().skip(self.buffer_pos)) {
+            *h += delta_scale * *x;
+        }
+
+        // Subtract oldest input sample from signal power and advance buffer position
+        let next_buffer_pos = if self.buffer_pos == 0 {
+            self.order() - 1
+        } else {
+            self.buffer_pos - 1
+        };
+        let x_oldest = self.x[next_buffer_pos];
+        self.x_power -= x_oldest * x_oldest;
+        self.buffer_pos = next_buffer_pos;
+
+        e
+    }
+
+    /*pub fn update_old(&mut self, x: f32, d: f32) -> f32 {
         assert!(self.buffer_pos < self.order());
         self.x[self.buffer_pos] = x;
         let order = self.order();
@@ -82,7 +118,7 @@ impl NlmsFilter {
         self.buffer_pos = next_buffer_pos;
 
         e
-    }
+    }*/
 
     pub fn reset(&mut self) {
         for i in 0..self.order() {
@@ -97,6 +133,8 @@ impl NlmsFilter {
 #[cfg(test)]
 mod tests {
     use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    use crate::common::F32ArrayExt;
 
     use super::*;
 
@@ -126,17 +164,19 @@ mod tests {
         // Use the same noise signal as x(n) and d(n). The expected
         // result is convergence to an identity FIR filter with all
         // zeros except a 1 at index 0.
+
+        // Generate noise signal
         let sample_count = 10000;
         let mut signal = vec![0.0; sample_count];
-
-        let mut rng = StdRng::seed_from_u64(222);
-
+        let mut rng = StdRng::seed_from_u64(123);
         for i in 0..sample_count {
-            signal[i] = (rng.gen_range(-1000..=1000) as f32) * 0.01;
+            signal[i] = rng.gen_range(-1.0..=1.0);
         }
 
+        // Create filter instance
         let mut filter = NlmsFilter::from_options(10, 0.5, 0.00001);
 
+        // Perform filtering
         for (i, x) in signal.iter().enumerate() {
             let e = filter.update(*x, *x);
 
@@ -146,9 +186,8 @@ mod tests {
                 assert!(e.abs() < 0.001);
                 // The FIR filter should have an identity response.
                 assert!((filter.h()[0] - 1.0).abs() < 1e-5);
-                for h in filter.h().iter().skip(1) {
-                    assert!(h.abs() < 1e-5)
-                }
+                assert!(filter.h()[1..].peak_level() < 1e-5);
+
             }
         }
     }

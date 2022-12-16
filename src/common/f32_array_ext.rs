@@ -1,8 +1,6 @@
-//! `[f32]` extensions.
-
 use micromath::F32Ext;
 
-/// `[f32]` extensions.
+/// DSP related `[f32]` extensions.
 pub trait F32ArrayExt {
     /// Returns the maximum absolute value.
     fn peak_level(&self) -> f32;
