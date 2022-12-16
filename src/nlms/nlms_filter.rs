@@ -9,6 +9,8 @@ pub struct NlmsFilter {
     x: Vec<f32>,
     /// Step size scale
     μ: f32,
+    /// Running sum of current input signal power.
+    x_power: f32,
     /// Constant added to the update step denominator to avoid division by zero.
     ε: f32,
     buffer_pos: usize,
@@ -26,6 +28,7 @@ impl NlmsFilter {
             μ: mu,
             ε: eps,
             buffer_pos: 0,
+            x_power: 0.0
         }
     }
 
@@ -50,11 +53,8 @@ impl NlmsFilter {
             }
         };
 
-        // Compute input signal power. Used to scale step size.
-        let mut power = 0.0;
-        for x in self.x.iter() {
-            power += x * x;
-        }
+        // Add current input to signal power
+        self.x_power += x * x;
 
         // Compute filter output y = h applied to x.
         let mut y = 0.0;
@@ -64,18 +64,22 @@ impl NlmsFilter {
         }
 
         let e = d - y;
-        let delta_scale = self.μ * e / (power + self.ε);
+        let delta_scale = self.μ * e / (self.x_power + self.ε);
         for (i, h) in self.h.iter_mut().enumerate() {
             let x_idx = prev_idx(i, self.buffer_pos);
             let delta = delta_scale * self.x[x_idx];
             *h += delta;
         }
 
-        self.buffer_pos = if self.buffer_pos == self.order() - 1 {
+        // Subtract oldest input sample from signal power
+        let next_buffer_pos = if self.buffer_pos == self.order() - 1 {
             0
         } else {
             self.buffer_pos + 1
         };
+        let x_oldest = self.x[next_buffer_pos];
+        self.x_power -= x_oldest * x_oldest;
+        self.buffer_pos = next_buffer_pos;
 
         e
     }
@@ -85,24 +89,47 @@ impl NlmsFilter {
             self.h[i] = 0.0;
             self.x[i] = 0.0;
             self.buffer_pos = 0;
+            self.x_power = 0.0;
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use rand::{Rng, rngs::StdRng, SeedableRng};
+    use rand::{rngs::StdRng, Rng, SeedableRng};
 
     use super::*;
 
     #[test]
+    fn test_nlms_iterations() {
+        let h_expected: [[f32; 3]; 6] = [
+            [0.0, 0.0, 0.0],
+            [1.4985014, 0.0, 0.0],
+            [1.6990607, 0.10027966, 0.0],
+            [1.9885677, 0.29328436, 0.09650234],
+            [1.9866968, 0.29188123, 0.09556692],
+            [1.7673157, 0.116376325, -0.036061756],
+        ];
+        let mut filter = NlmsFilter::from_options(3, 0.5, 0.001);
+        let x: [f32; 6] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
+        let d: [f32; 6] = [1.0, 3.0, 4.0, 8.0, 9.0, 7.0];
+        for (i, (x, d)) in x.iter().zip(d.iter()).enumerate() {
+            filter.update(*x, *d);
+            for (h, h_expected) in filter.h().iter().zip(h_expected[i].iter()) {
+                assert_eq!(*h, *h_expected);
+            }
+        }
+    }
+
+    #[test]
     fn test_nlms_cancellation() {
         // Use the same noise signal as x(n) and d(n). The expected
-        // result is an identity FIR filter with all zeros except a 1 at index 0.
+        // result is convergence to an identity FIR filter with all
+        // zeros except a 1 at index 0.
         let sample_count = 10000;
         let mut signal = vec![0.0; sample_count];
 
-        let mut rng = StdRng::seed_from_u64(222); // <- Here we set the seed
+        let mut rng = StdRng::seed_from_u64(222);
 
         for i in 0..sample_count {
             signal[i] = (rng.gen_range(-1000..=1000) as f32) * 0.01;
@@ -117,7 +144,7 @@ mod tests {
             if i > 200 {
                 // The signal should be almost completely cancelled out
                 assert!(e.abs() < 0.001);
-                // The FIR should have an identity response.
+                // The FIR filter should have an identity response.
                 assert!((filter.h()[0] - 1.0).abs() < 1e-5);
                 for h in filter.h().iter().skip(1) {
                     assert!(h.abs() < 1e-5)
