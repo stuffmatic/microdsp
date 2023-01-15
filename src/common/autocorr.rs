@@ -23,9 +23,9 @@ pub fn autocorr_fft_size(buffer_size: usize, lag_count: usize) -> usize {
 /// # Arguments
 ///
 /// * `buffer` - Input buffer
-/// * `result` - A buffer of length TODO to write the result to.
-/// * `scratch_buffer` - A scratch buffer of length TODO used for temporary storage.
-/// * `lag_count` - The length of the computed autocorrelation. Must not be greater than the length of TODO.
+/// * `result` - A buffer to write the result to.
+/// * `scratch_buffer` - A scratch buffer used for temporary storage.
+/// * `lag_count` - The length of the computed autocorrelation.
 pub fn autocorr_fft(
     buffer: &[f32],
     result: &mut [f32],
