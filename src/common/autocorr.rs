@@ -69,9 +69,8 @@ pub fn autocorr_fft(
 
     // Apply scaling factor
     let scale = 1.0 / (fft_size as f32);
-    for i in 0..lag_count {
-        // TODO: use iterator
-        result[i] = scale * ifft[i].re;
+    for (result, ifft) in result.iter_mut().zip(ifft) {
+        *result = scale * (*ifft).re;
     }
 }
 
