@@ -1,7 +1,7 @@
 # microdsp
 
 [![Crates.io](https://img.shields.io/crates/v/microdsp)](https://crates.io/crates/microdsp)
-[![Docs.rs](https://docs.rs/midi-msg/microdsp)](https://docs.rs/microdsp)
+[![Docs.rs](https://docs.rs/microdsp/badge.svg)](https://docs.rs/microdsp)
 
 microdsp is a collection of [DSP](https://en.wikipedia.org/wiki/Digital_signal_processing)
 algorithms and utilities written in Rust. The code is `no_std` compatible and suitable for use in embedded systems.
