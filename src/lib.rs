@@ -3,7 +3,7 @@
 //! The crate is `no_std` compatible and relies
 //! on [`alloc`](https://doc.rust-lang.org/alloc/).
 //! When building for targets without a default allocator,
-//! one must be provided by the user. This can be accomplished in stable Rust 1.67 and higher
+//! one must be provided by the user. This can be accomplished in stable Rust 1.68 and higher
 //! using `#[global_allocator]` and `#[default_alloc_error_handler]`.
 
 #![no_std]

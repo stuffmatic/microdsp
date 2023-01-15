@@ -1,6 +1,6 @@
 [package]
 name = "microdsp"
-version = "0.1.0-alpha"
+version = "0.1.0"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
 description = "TODO"

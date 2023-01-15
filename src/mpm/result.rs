@@ -31,7 +31,7 @@ pub struct MpmPitchResult {
     /// the result is considered invalid.
     pub key_max_count: usize,
     /// A fixed array of key maxima. The first `key_max_count` maxima are valid.
-    pub key_maxima: [KeyMax; MAX_KEY_MAXIMA_COUNT],
+    pub key_maxima: Box<[KeyMax]>,
     /// The index into `key_maxima` of the selected key maximum
     pub selected_key_max_index: usize,
     ///
@@ -58,7 +58,7 @@ impl MpmPitchResult {
             r_prime,
             scratch_buffer,
             key_max_count: 0,
-            key_maxima: [KeyMax::new(); MAX_KEY_MAXIMA_COUNT],
+            key_maxima: vec![KeyMax::new(); MAX_KEY_MAXIMA_COUNT].into_boxed_slice(),
             selected_key_max_index: 0,
             pitch_period: 0.0,
         }

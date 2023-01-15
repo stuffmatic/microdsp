@@ -2,19 +2,18 @@
 //! adaptive filter.
 //!
 //! # Examples
-//! ## Noise cancellation
+//! ## Signal cancellation
 //!
-//! This example uses the same noise signal for x(n) and d(n) (notation from [here](https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS))).
+//! This toy example uses the same signal for x(n) and d(n) (using [this notation](https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS))).
 //! The expected result is convergence to an identity filter with all
 //! zeros except a 1 at index 0.
-//!
 //! ```
 //! use rand::{rngs::StdRng, Rng, SeedableRng};
 //! use microdsp::common::F32ArrayExt;
 //! use microdsp::nlms::NlmsFilter;
 //!
 //! // Generate noise signal
-//! let sample_count = 10000;
+//! let sample_count = 100000;
 //! let mut signal = vec![0.0; sample_count];
 //! let mut rng = StdRng::seed_from_u64(123);
 //! for i in 0..sample_count {
@@ -22,7 +21,7 @@
 //! }
 //!
 //! // Create filter instance
-//! let mut filter = NlmsFilter::from_options(10, 0.5, 0.00001);
+//! let mut filter = NlmsFilter::new(10, 0.5, 0.00001);
 //!
 //! // Perform filtering
 //! for (i, x) in signal.iter().enumerate() {

@@ -78,7 +78,6 @@ pub fn autocorr_fft(
 
 /// Computes the [autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation)
 /// of a given buffer using time domain convolution.
-/// Only used for testing purposes.
 pub fn autocorr_conv(window: &[f32], result: &mut [f32]) {
     let window_size = window.len();
     if window_size < result.len() {

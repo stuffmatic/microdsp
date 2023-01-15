@@ -11,9 +11,15 @@ using `#[global_allocator]` and `#[default_alloc_error_handler]`.
 
 ## Demos
 
-### Desktop
+### Cargo examples
 
-The `examples` folder contains a number of demos that can be run with `cargo run --example [filename without .rs extension]`, for example `cargo run --example mpm`. Some of these use `rust-portaudio` , so if you run into portaudio related issues, check out the  
+The [`examples`](examples) folder contains a number of demos that can be run with
+
+```
+cargo run --example [filename without .rs extension]
+```
+
+for example `cargo run --example mpm`. Some of these use `rust-portaudio` for real time audio input. If you run into portaudio related issues, you may find some pointers [here](https://github.com/RustAudio/rust-portaudio).
 
 ### Web
 
@@ -21,4 +27,4 @@ microdsp can be compiled to wasm to run in modern web browsers.
 
 ### Embedded
 
-A demo showing how to do real time audio processing using microdsp and [Zephyr](https://zephyrproject.org/) can be found in the [microdsp-zephyr-demos](https://github.com/stuffmatic/microdsp-zephyr-demos) repo.
+Demos showing how to do real time audio processing on a microcontroller using microdsp and [Zephyr](https://zephyrproject.org/) can be found in the [microdsp-zephyr-demos](https://github.com/stuffmatic/microdsp-zephyr-demos) repo.

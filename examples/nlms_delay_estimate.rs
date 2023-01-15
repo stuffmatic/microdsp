@@ -51,7 +51,7 @@ fn main() {
 
     println!("Filtering (μ={MU}, ε={EPS}, order={FILTER_ORDER})");
     println!("");
-    let mut filter = NlmsFilter::from_options(FILTER_ORDER, MU, EPS);
+    let mut filter = NlmsFilter::new(FILTER_ORDER, MU, EPS);
     let mut e = vec![];
     for (s2, ds2) in signal_1.iter().zip(delayed_signal_2.iter()) {
         e.push(filter.update(*s2, *ds2));
@@ -90,6 +90,4 @@ fn main() {
             print!("\n");
         }
     }
-
-    // let _ = wav::write_wav("test_signal.wav".into(), SAMPLE_RATE, 1, &signal);
 }
