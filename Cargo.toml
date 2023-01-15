@@ -3,13 +3,13 @@ name = "microdsp"
 version = "0.1.0"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
-description = "TODO"
+description = "DSP algorithms and utilities. Performant, embedded friendly and no_std compatible."
 repository = "https://github.com/stuffmatic/microdsp/"
 license = "MIT"
 categories = ["no-std", "multimedia::audio", "embedded"]
+keywords=["dsp", "embedded", "audio"]
 resolver = "2"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+exclude=["/example_data", "/papers"]
 
 [dev-dependencies]
 criterion = "0.3"
