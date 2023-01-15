@@ -19,8 +19,6 @@ impl MpmPitchDetector {
         downsampled_lag_count: usize,
         downsampling: usize,
     ) -> Self {
-        // TODO: validate lag count
-
         MpmPitchDetector {
             sample_rate,
             result: MpmPitchResult::new(downsampled_window_size, downsampled_lag_count),
@@ -81,6 +79,12 @@ mod tests {
             window[i] = sine_value;
         }
         return window;
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_lag_count() {
+        MpmPitchDetector::from_options(44100.0, 128, 64, 129, 1);
     }
 
     #[test]
