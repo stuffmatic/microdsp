@@ -17,7 +17,6 @@ pub fn autocorr_fft_size(buffer_size: usize, lag_count: usize) -> usize {
     result
 }
 
-
 /// Computes the [autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation)
 /// of a given buffer using FFT.
 ///
@@ -104,7 +103,7 @@ mod tests {
     use alloc::vec;
     use alloc::vec::Vec;
 
-    use super::{autocorr_fft, autocorr_fft_size, autocorr_conv};
+    use super::{autocorr_conv, autocorr_fft, autocorr_fft_size};
 
     #[test]
     fn test_autocorr_fft() {

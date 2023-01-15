@@ -1,4 +1,3 @@
-
 use core::f32::consts::PI;
 
 #[derive(Clone, Copy)]
@@ -69,7 +68,7 @@ fn welch_window(buffer: &mut [f32]) {
         for value in buffer.iter_mut() {
             *value = 0.0;
         }
-        return
+        return;
     }
     let len = buffer.len();
     let dx = 2. / ((len - 1) as f32);

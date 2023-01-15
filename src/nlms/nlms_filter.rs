@@ -27,7 +27,7 @@ impl NlmsFilter {
             μ: mu,
             ε: eps,
             buffer_pos: 0,
-            x_power: 0.0
+            x_power: 0.0,
         }
     }
 

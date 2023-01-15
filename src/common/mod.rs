@@ -7,7 +7,7 @@ mod midi;
 mod window_function;
 mod window_processor;
 
-pub use autocorr::{autocorr_fft, autocorr_fft_size, autocorr_conv};
+pub use autocorr::{autocorr_conv, autocorr_fft, autocorr_fft_size};
 pub use f32_array_ext::F32ArrayExt;
 pub use fft::real_fft;
 pub use midi::freq_to_midi_note;

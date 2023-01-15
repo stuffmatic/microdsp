@@ -1,4 +1,4 @@
-use alloc::{vec, boxed::Box};
+use alloc::{boxed::Box, vec};
 
 /// Provides fixed size windows extracted from
 /// a stream of arbitrarily sized input buffers. Supports
@@ -11,7 +11,7 @@ pub struct WindowProcessor {
     downsampled_hop_size: usize,
     // Downsampled window write index
     write_index: usize,
-    wrapped_sample_counter: usize
+    wrapped_sample_counter: usize,
 }
 
 fn validate_sizes(downsampled_size: usize, downsampled_hop_size: usize, downsampling: usize) {
@@ -47,7 +47,7 @@ impl WindowProcessor {
             downsampled_hop_size,
             downsampling,
             write_index: 0,
-            wrapped_sample_counter: 0
+            wrapped_sample_counter: 0,
         }
     }
 
@@ -90,7 +90,8 @@ impl WindowProcessor {
             }
         }
 
-        self.wrapped_sample_counter = (self.wrapped_sample_counter + buffer.len()) % self.downsampling
+        self.wrapped_sample_counter =
+            (self.wrapped_sample_counter + buffer.len()) % self.downsampling
     }
 }
 

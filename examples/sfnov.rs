@@ -1,9 +1,6 @@
 use dev_helpers::rtrb;
 use dev_helpers::{AudioHost, AudioProcessor};
-use microdsp::sfnov::{
-    HardKneeCompression,
-    SpectralFluxNoveltyDetector,
-};
+use microdsp::sfnov::{HardKneeCompression, SpectralFluxNoveltyDetector};
 use std::thread;
 use std::time::Duration;
 

@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec};
 
 use crate::{
-    common::{real_fft, apply_window_function},
+    common::{apply_window_function, real_fft},
     sfnov::compression_function::CompressionFunction,
 };
 
