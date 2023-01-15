@@ -1,4 +1,4 @@
-use alloc::{vec, vec::Vec};
+use alloc::{vec, boxed::Box};
 
 /// Provides fixed size windows extracted from
 /// a stream of arbitrarily sized input buffers. Supports
@@ -6,13 +6,12 @@ use alloc::{vec, vec::Vec};
 /// for implementing algorithms operating on
 /// consecutive windows of the same size.
 pub struct WindowProcessor {
-    downsampled_window: Vec<f32>,
+    downsampled_window: Box<[f32]>,
     downsampling: usize,
     downsampled_hop_size: usize,
-    // The write index within the downsampled window.
+    // Downsampled window write index
     write_index: usize,
-    sample_counter: usize,
-    should_process: bool,
+    wrapped_sample_counter: usize
 }
 
 fn validate_sizes(downsampled_size: usize, downsampled_hop_size: usize, downsampling: usize) {
@@ -44,19 +43,17 @@ impl WindowProcessor {
     ) -> Self {
         validate_sizes(downsampled_window_size, downsampled_hop_size, downsampling);
         WindowProcessor {
-            downsampled_window: vec![0.; downsampled_window_size],
+            downsampled_window: vec![0.; downsampled_window_size].into_boxed_slice(),
             downsampled_hop_size,
             downsampling,
             write_index: 0,
-            sample_counter: 0,
-            should_process: true,
+            wrapped_sample_counter: 0
         }
     }
 
     pub fn reset(&mut self) {
         self.write_index = 0;
-        self.sample_counter = 0;
-        self.should_process = true;
+        self.wrapped_sample_counter = 0;
     }
 
     /// Returns the downsampling factor.
@@ -80,29 +77,26 @@ impl WindowProcessor {
     where
         F: FnMut(&[f32]),
     {
-        if self.should_process {
-            let downsampled_window_size = self.downsampled_window.len();
-            let skip = self.sample_counter % self.downsampling;
-            for input in buffer.iter().skip(skip).step_by(self.downsampling) {
-                self.downsampled_window[self.write_index] = *input;
-                self.write_index += 1;
-                if self.write_index == downsampled_window_size {
-                    handler(&self.downsampled_window);
-                    self.downsampled_window
-                        .rotate_left(self.downsampled_hop_size);
-                    self.write_index = downsampled_window_size - self.downsampled_hop_size;
-                }
+        let downsampled_window_size = self.downsampled_window.len();
+        let skip = (self.downsampling - self.wrapped_sample_counter) % self.downsampling;
+        for input in buffer.iter().skip(skip).step_by(self.downsampling) {
+            self.downsampled_window[self.write_index] = *input;
+            self.write_index += 1;
+            if self.write_index == downsampled_window_size {
+                handler(&self.downsampled_window);
+                self.downsampled_window
+                    .rotate_left(self.downsampled_hop_size);
+                self.write_index = downsampled_window_size - self.downsampled_hop_size;
             }
         }
 
-        self.should_process = self.sample_counter < self.downsampling
-            && self.sample_counter + buffer.len() >= self.downsampling;
-        self.sample_counter += buffer.len()
+        self.wrapped_sample_counter = (self.wrapped_sample_counter + buffer.len()) % self.downsampling
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
     use alloc::vec::Vec;
 
     use super::WindowProcessor;
@@ -129,6 +123,28 @@ mod tests {
     #[should_panic]
     fn test_zero_downsampling() {
         WindowProcessor::new(0, 256, 256);
+    }
+
+    #[test]
+    fn test_hop_size_equals_window_size() {
+        let hop_size = 128;
+        let window_size = 128;
+        let downsampling = 2;
+        let chunk_size = 256;
+        let window_count = 10;
+        let sample_count = chunk_size * window_count;
+        let samples = vec![0.0; sample_count];
+        let mut processor = WindowProcessor::new(downsampling, window_size, hop_size);
+        let mut first_idx = 0;
+        let mut winow_counter = 0;
+        while first_idx < sample_count {
+            let chunk = &samples[first_idx..(first_idx + chunk_size)];
+            processor.process(chunk, |_| {
+                winow_counter += 1;
+            });
+            first_idx += chunk_size;
+        }
+        assert_eq!(winow_counter, window_count);
     }
 
     #[test]
