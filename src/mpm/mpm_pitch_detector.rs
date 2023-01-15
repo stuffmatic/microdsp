@@ -40,7 +40,7 @@ impl MpmPitchDetector {
         let downsampling = self.window_processor.downsampling();
         let sample_rate = self.sample_rate;
         self.window_processor.process(buffer, |window| {
-            result.window.copy_from_slice(window); // TODO: this copy could be avoided
+            result.window.copy_from_slice(window);
             result.compute(sample_rate / (downsampling as f32));
             result_handler(result);
         });

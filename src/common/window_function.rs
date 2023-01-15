@@ -44,7 +44,7 @@ fn hann_window(buffer: &mut [f32]) {
         let x5 = x3 * x * x;
         let window_value = a * x5 + b * x3 + c * x + d;
         *value *= window_value;
-        x += dx; // TODO: this causes drift for large windows?
+        x += dx;
     }
 
     // Right half
@@ -58,7 +58,7 @@ fn hann_window(buffer: &mut [f32]) {
         let x5 = x3 * x * x;
         let window_value = a * x5 + b * x3 + c * x + d;
         *value *= window_value;
-        x -= dx; // TODO: this causes drift for large windows?
+        x -= dx;
     }
 }
 

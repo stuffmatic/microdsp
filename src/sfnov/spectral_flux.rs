@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec};
 
 use crate::{
-    common::{apply_window_function, real_fft},
+    common::{real_fft, apply_window_function},
     sfnov::compression_function::CompressionFunction,
 };
 
@@ -106,14 +106,15 @@ impl SpectralFlux {
 
         for (power, z) in power.iter_mut().zip(fft) {
             // magnitude is compressed in https://www.audiolabs-erlangen.de/resources/MIR/FMP/C6/C6S1_NoveltySpectral.html
-            // TODO: compressing norm s
+            // TODO: should be compressing the norm as opposed to the norm squared if
+            //       an efficient approximation can be found.
             *power = compression_func.compress(z.norm_sqr());
         }
 
         let mut novelty = 0.;
         if self.has_processed_second_window {
             for i in 0..power.len() {
-                // TODO: use zip etc
+                // TODO: Optimize this by avoiding direct [i] access.
                 let delta = power[i] - power_prev[i];
                 self.d_power[i] = delta;
                 if delta > 0. {
@@ -121,7 +122,7 @@ impl SpectralFlux {
                 }
             }
         }
-        self.novelty = novelty / (self.d_power.len() as f32); // TODO: proper normalization
+        self.novelty = novelty / (self.d_power.len() as f32);
         self.prev_is_1 = !self.prev_is_1;
         self.has_processed_second_window
     }
