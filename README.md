@@ -26,6 +26,8 @@ See [the crate documentation](https://docs.rs/microdsp).
 
 ## Demos
 
+### Cargo examples
+
 The [`examples`](examples) folder contains a number of demos that can be run with
 
 ```
@@ -33,6 +35,10 @@ cargo run --example [filename without .rs extension]
 ```
 
 for example `cargo run --example mpm`. Some of these use `rust-portaudio` for real time audio input. If you run into portaudio related issues, you may find some pointers [here](https://github.com/RustAudio/rust-portaudio).
+
+### Embedded
+
+The [microdsp-zephyr-demos](https://github.com/stuffmatic/microdsp-zephyr-demos/) repo contains demos showing how to do real time audio processing on a microcontroller using microdsp and Zephyr.
 
 ## License
 
