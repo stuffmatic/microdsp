@@ -10,7 +10,7 @@ algorithms and utilities written in Rust. The code is `no_std` compatible and su
 * [Audio onset detection](https://en.wikipedia.org/wiki/Onset_(audio)) using [spectral flux novelty](https://krishnasubramani.web.illinois.edu/data/Energy-Weighted%20Multi-Band%20Novelty%20Functions%20for%20Onset%20Detection%20in%20Piano%20Music.pdf). Used to detect transients and "starts of sounds". Supports downsampling and overlapping windows.
 * [Normalized least mean squares](https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)) adaptive filter. Can for example be used for signal cancellation and time delay estimation.
 
-To see microdsp running on a microcontroller, check out [these videos](https://github.com/stuffmatic/microdsp-zephyr-demos#demos).
+To see microdsp in action on a microcontroller, check out [these videos](https://github.com/stuffmatic/microdsp-zephyr-demos#demos).
 
 ## Installing
 
