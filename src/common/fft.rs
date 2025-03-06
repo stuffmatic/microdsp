@@ -7,7 +7,7 @@ pub fn real_fft(buffer: &mut [f32]) -> &mut [microfft::Complex32] {
     match fft_size {
         8 => microfft::real::rfft_8(buffer.try_into().unwrap()),
         16 => microfft::real::rfft_16(buffer.try_into().unwrap()),
-        32 => microfft::real::rfft_16(buffer.try_into().unwrap()),
+        32 => microfft::real::rfft_32(buffer.try_into().unwrap()),
         64 => microfft::real::rfft_64(buffer.try_into().unwrap()),
         128 => microfft::real::rfft_128(buffer.try_into().unwrap()),
         256 => microfft::real::rfft_256(buffer.try_into().unwrap()),
