@@ -1,6 +1,6 @@
 [package]
 name = "microdsp"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Per Gantelius <per@stuffmatic.com>"]
 edition = "2018"
 description = "DSP algorithms and utilities. Performant, embedded friendly and no_std compatible."
